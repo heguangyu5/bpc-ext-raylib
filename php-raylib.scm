@@ -97,26 +97,26 @@
                           (a (bpc_php_hash_lookup_int ,color #e3)))
                         (unless (elong? r)
                             (set! r (or (mkelong r 'arg-parsing)
-                                        (php-warning ,func-name "() expects parameter " ,arg-idx " array index 0 to be integer, " (get-php-datatype r 'arg-parsing) " given"))))
+                                        (php-error ,func-name "() expects parameter " ,arg-idx " array index 0 to be integer, " (get-php-datatype r 'arg-parsing) " given"))))
                         (when r
                             (unless (elong? g)
                                 (set! g (or (mkelong g 'arg-parsing)
-                                            (php-warning ,func-name "() expects parameter " ,arg-idx " array index 1 to be integer, " (get-php-datatype g 'arg-parsing) " given"))))
+                                            (php-error ,func-name "() expects parameter " ,arg-idx " array index 1 to be integer, " (get-php-datatype g 'arg-parsing) " given"))))
                             (when g
                                 (unless (elong? b)
                                     (set! b (or (mkelong b 'arg-parsing)
-                                                (php-warning ,func-name "() expects parameter " ,arg-idx " array index 2 to be integer, " (get-php-datatype b 'arg-parsing) " given"))))
+                                                (php-error ,func-name "() expects parameter " ,arg-idx " array index 2 to be integer, " (get-php-datatype b 'arg-parsing) " given"))))
                                 (when b
                                     (unless (elong? a)
                                         (set! a (or (mkelong a 'arg-parsing)
-                                                    (php-warning ,func-name "() expects parameter " ,arg-idx " array index 3 to be integer, " (get-php-datatype a 'arg-parsing) " given"))))
+                                                    (php-error ,func-name "() expects parameter " ,arg-idx " array index 3 to be integer, " (get-php-datatype a 'arg-parsing) " given"))))
                                     (when a
                                         (pragma ,(string-append c ".r = (unsigned char)$1") ($belong->elong r))
                                         (pragma ,(string-append c ".g = (unsigned char)$1") ($belong->elong g))
                                         (pragma ,(string-append c ".b = (unsigned char)$1") ($belong->elong b))
                                         (pragma ,(string-append c ".a = (unsigned char)$1") ($belong->elong a))
                                         #t)))))
-                    (php-warning ,func-name "() expects parameter " ,arg-idx " to be array with 4(rgba order) color values, " size " given"))))))
+                    (php-error ,func-name "() expects parameter " ,arg-idx " to be array with 4(rgba order) color values, " size " given"))))))
 
 (defbuiltin (clearbackground color)
     (pragma "Color c")
