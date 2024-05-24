@@ -16,7 +16,10 @@ typedef enum {
 
 # 3. Data Structure Map
 
-| C                    | php                 |
-| -------------------- | ------------------- |
-| `Color {r, g, b, a}` | `array(r, g, b, a)` |
+| C                    | php                                                          |
+| -------------------- | ------------------------------------------------------------ |
+| `Color {r, g, b, a}` | `array(r, g, b, a)`                                          |
+| Image                | resource: raylib Image                                       |
+| Image *images        | array(resource raylib Image 1, resource raylib Image 2, ...) |
+| Vector2 {x, y}       | array(x, y)                                                  |
 
