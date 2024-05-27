@@ -7,7 +7,7 @@ BUILD_DIR = ./build
 # this should list all scheme files to be included in the library
 # leave off .scm, however, since the list is used to generate other
 # file names as well.
-SOURCE_LIST     = php-raylib
+SOURCE_LIST     = php-raylib php-raymath php-rlgl
 
 # C source files
 C_SOURCE_LIST   =
