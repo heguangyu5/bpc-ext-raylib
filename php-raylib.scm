@@ -355,6 +355,22 @@
         (getimagealphaborder image threshold)
         (getimagecolor image x y)
         ; Image drawing functions
+        (imageclearbackground image color)
+        (imagedrawpixel image posX posY color)
+        (imagedrawpixelv image position color)
+        (imagedrawline image startPosX startPosY endPosX endPosY color)
+        (imagedrawlinev image start end color)
+        (imagedrawcircle image centerX centerY radius color)
+        (imagedrawcirclev image center radius color)
+        (imagedrawcirclelines image centerX centerY radius color)
+        (imagedrawcirclelinesv image center radius color)
+        (imagedrawrectangle image posX posY width height color)
+        (imagedrawrectanglev image position size color)
+        (imagedrawrectanglerec image rec color)
+        (imagedrawrectanglelines image rec thick color)
+        (imagedraw image src srcRec dstRec tint)
+        (ImageDrawText image text posX posY fontSize color)
+        (imagedrawtextex image font text position fontSize spacing tint)
         ; Texture loading functions
         (loadtexture fileName)
         (loadtexturefromimage image)
@@ -2135,19 +2151,147 @@
                         ($belong->elong endPosY))
                 NULL))))
 
-;RLAPI void ImageDrawLine(Image *dst, int startPosX, int startPosY, int endPosX, int endPosY, Color color); // Draw line within an image
-;RLAPI void ImageDrawLineV(Image *dst, Vector2 start, Vector2 end, Color color);                          // Draw line within an image (Vector version)
-;RLAPI void ImageDrawCircle(Image *dst, int centerX, int centerY, int radius, Color color);               // Draw a filled circle within an image
-;RLAPI void ImageDrawCircleV(Image *dst, Vector2 center, int radius, Color color);                        // Draw a filled circle within an image (Vector version)
-;RLAPI void ImageDrawCircleLines(Image *dst, int centerX, int centerY, int radius, Color color);          // Draw circle outline within an image
-;RLAPI void ImageDrawCircleLinesV(Image *dst, Vector2 center, int radius, Color color);                   // Draw circle outline within an image (Vector version)
-;RLAPI void ImageDrawRectangle(Image *dst, int posX, int posY, int width, int height, Color color);       // Draw rectangle within an image
-;RLAPI void ImageDrawRectangleV(Image *dst, Vector2 position, Vector2 size, Color color);                 // Draw rectangle within an image (Vector version)
-;RLAPI void ImageDrawRectangleRec(Image *dst, Rectangle rec, Color color);                                // Draw rectangle within an image
-;RLAPI void ImageDrawRectangleLines(Image *dst, Rectangle rec, int thick, Color color);                   // Draw rectangle lines within an image
-;RLAPI void ImageDraw(Image *dst, Image src, Rectangle srcRec, Rectangle dstRec, Color tint);             // Draw a source image within a destination image (tint applied to source)
-;RLAPI void ImageDrawText(Image *dst, const char *text, int posX, int posY, int fontSize, Color color);   // Draw text (using default font) within an image (destination)
-;RLAPI void ImageDrawTextEx(Image *dst, Font font, const char *text, Vector2 position, float fontSize, float spacing, Color tint); // Draw text (custom sprite font) within an image (destination)
+(defbuiltin (imagedrawlinev image start end color)
+    (%ensure-image 'ImageDrawLineV
+        (pragma "Vector2 start, end;
+                 Color c")
+        (when (and (%init-c-vector2 'ImageDrawLineV 2 start "start")
+                   (%init-c-vector2 'ImageDrawLineV 3 end "end")
+                   (%init-c-color 'ImageDrawLineV 4 color "c"))
+            (pragma "ImageDrawLineV(im, start, end, c)")
+            NULL)))
+
+(defbuiltin (imagedrawcircle image centerX centerY radius color)
+    (%ensure-image 'ImageDrawCircle
+        (ensure-elongs 'ImageDrawCircle (centerX centerY radius) 2
+            (pragma "Color c")
+            (when (%init-c-color 'ImageDrawCircle 5 color "c")
+                (pragma "ImageDrawCircle(im, (int)$1, (int)$2, (int)$3, c)"
+                        ($belong->elong centerX)
+                        ($belong->elong centerY)
+                        ($belong->elong radius))
+                NULL))))
+
+(defbuiltin (imagedrawcirclev image center radius color)
+    (%ensure-image 'ImageDrawCircleV
+        (pragma "Vector2 center")
+        (when (%init-c-vector2 'ImageDrawCircleV 2 center "center")
+            (ensure-elong 'ImageDrawCircleV radius 3
+                (pragma "Color c")
+                (when (%init-c-color 'ImageDrawCircleV 4 color "c")
+                    (pragma "ImageDrawCircleV(im, center, (int)$1, c)"
+                            ($belong->elong radius))
+                    NULL)))))
+
+(defbuiltin (imagedrawcirclelines image centerX centerY radius color)
+    (%ensure-image 'ImageDrawCircleLines
+        (ensure-elongs 'ImageDrawCircleLines (centerX centerY radius) 2
+            (pragma "Color c")
+            (when (%init-c-color 'ImageDrawCircleLines 5 color "c")
+                (pragma "ImageDrawCircleLines(im, (int)$1, (int)$2, (int)$3, c)"
+                        ($belong->elong centerX)
+                        ($belong->elong centerY)
+                        ($belong->elong radius))
+                NULL))))
+
+(defbuiltin (imagedrawcirclelinesv image center radius color)
+    (%ensure-image 'ImageDrawCircleLinesV
+        (pragma "Vector2 center")
+        (when (%init-c-vector2 'ImageDrawCircleLinesV 2 center "center")
+            (ensure-elong 'ImageDrawCircleLinesV radius 3
+                (pragma "Color c")
+                (when (%init-c-color 'ImageDrawCircleLinesV 4 color "c")
+                    (pragma "ImageDrawCircleLinesV(im, center, (int)$1, c)"
+                            ($belong->elong radius))
+                    NULL)))))
+
+(defbuiltin (imagedrawrectangle image posX posY width height color)
+    (%ensure-image 'ImageDrawRectangle
+        (ensure-elongs 'ImageDrawRectangle (posX posY width height) 2
+            (pragma "Color c")
+            (when (%init-c-color 'ImageDrawRectangle 6 color "c")
+                (pragma "ImageDrawRectangle(im, (int)$1, (int)$2, (int)$3, (int)$4, c)"
+                        ($belong->elong posX)
+                        ($belong->elong posY)
+                        ($belong->elong width)
+                        ($belong->elong height))
+                NULL))))
+
+(defbuiltin (imagedrawrectanglev image position size color)
+    (%ensure-image 'ImageDrawRectangleV
+        (pragma "Vector2 pos, size;
+                 Color c")
+        (when (and (%init-c-vector2 'ImageDrawRectangleV 2 position "pos")
+                   (%init-c-vector2 'ImageDrawRectangleV 3 size "size")
+                   (%init-c-color 'ImageDrawRectangleV 4 color "c"))
+            (pragma "ImageDrawRectangleV(im, pos, size, c)")
+            NULL)))
+
+(defbuiltin (imagedrawrectanglerec image rec color)
+    (%ensure-image 'ImageDrawRectangleRec
+        (pragma "Rectangle r;
+                 Color c")
+        (when (and (%init-c-rect 'ImageDrawRectangleRec 2 rec "r")
+                   (%init-c-color 'ImageDrawRectangleRec 3 color "c"))
+            (pragma "ImageDrawRectangleRec(im, r, c)")
+            NULL)))
+
+(defbuiltin (imagedrawrectanglelines image rec thick color)
+    (%ensure-image 'ImageDrawRectangleLines
+        (pragma "Rectangle r")
+        (when (%init-c-rect 'ImageDrawRectangleLines 2 rec "r")
+            (ensure-elong 'ImageDrawRectangleLines thick 3
+                (pragma "Color c")
+                (when (%init-c-color 'ImageDrawRectangleLines 4 color "c")
+                    (pragma "ImageDrawRectangleLines(im, r, (int)$1, c)"
+                            ($belong->elong thick))
+                    NULL)))))
+
+(defbuiltin (imagedraw image src srcRec dstRec tint)
+    (%ensure-image 'ImageDraw
+        (resource-valid-guard
+            'ImageDraw
+            (and (%Image? src)
+                 (%Image-intern src))
+            "raylib Image"
+            (begin
+                (pragma "Image *src")
+                (pragma "src = (Image *)$1" ($obj->void* (%Image-intern src)))
+                (pragma "Rectangle srcRec, dstRec;
+                         Color tint")
+                (when (and (%init-c-rect 'ImageDraw 3 srcRec "srcRec")
+                           (%init-c-rect 'ImageDraw 4 dstRec "dstRec")
+                           (%init-c-color 'ImageDraw 5 tint "tint"))
+                    (pragma "ImageDraw(im, *src, srcRec, dstRec, tint)")
+                    NULL)))))
+
+(defbuiltin (ImageDrawText image text posX posY fontSize color)
+    (%ensure-image 'ImageDrawText
+        (ensure-str 'ImageDrawText text 2
+            (ensure-elongs 'ImageDrawText (posX posY fontSize) 3
+                (pragma "Color c")
+                (when (%init-c-color 'ImageDrawText 6 color "c")
+                    (pragma "ImageDrawText(im, $1, (int)$2, (int)$3, (int)$4, c)"
+                            ($bstring->string text)
+                            ($belong->elong posX)
+                            ($belong->elong posY)
+                            ($belong->elong fontSize))
+                    NULL)))))
+
+(defbuiltin (imagedrawtextex image font text position fontSize spacing tint)
+    (%ensure-image 'ImageDrawTextEx
+        (%ensure-font 'ImageDrawTextEx
+            (ensure-str 'ImageDrawTextEx text 3
+                (pragma "Vector2 pos")
+                (when (%init-c-vector2 'ImageDrawTextEx 4 position "pos")
+                    (ensure-flonums 'ImageDrawTextEx (fontSize spacing) 5
+                        (pragma "Color tint")
+                        (when (%init-c-color 'ImageDrawTextEx 7 tint "tint")
+                            (pragma "ImageDrawTextEx(im, *font, $1, pos, (float)$2, (float)$3, tint)"
+                                    ($bstring->string text)
+                                    ($real->double fontSize)
+                                    ($real->double spacing))
+                            NULL)))))))
 
 ; Texture loading functions
 
