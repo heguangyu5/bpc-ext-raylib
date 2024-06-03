@@ -380,6 +380,17 @@
         (unloadtexture texture)
         (isrendertextureready target)
         (unloadrendertexture target)
+        ; Texture configuration functions
+        (gentexturemipmaps texture)
+        (settexturefilter texture filter)
+        (settexturewrap texture wrap)
+        ; Texture drawing functions
+        (drawtexture texture posX posY tint)
+        (drawtexturev texture position tint)
+        (drawtextureex texture position rotation scale tint)
+        (drawtexturerec texture source position tint)
+        (drawtexturepro texture source dest origin rotation tint)
+        (drawtexturenpatch texture nPatchInfo dest origin rotation tint)
         ; Color/pixel related functions
         (fade color alpha)
         (colortoint color)
@@ -2363,6 +2374,144 @@
 
 ; TODO: void UpdateTexture(Texture2D texture, const void *pixels);
 ; TODO: void UpdateTextureRec(Texture2D texture, Rectangle rec, const void *pixels);
+
+; Texture configuration functions
+
+(defbuiltin (gentexturemipmaps (ref . texture))
+    (let ((texture-val (container-value texture)))
+        (pragma "Texture2D t")
+        (when (%init-c-texture 'GenTextureMipmaps 1 texture-val "t")
+            (pragma "GenTextureMipmaps(&t)")
+            (container-value-set! texture (%mktexture "t"))
+            NULL)))
+
+(defbuiltin (settexturefilter texture filter)
+    (pragma "Texture2D t")
+    (when (%init-c-texture 'SetTextureFilter 1 texture "t")
+        (ensure-elong 'SetTextureFilter filter 2
+            (pragma "SetTextureFilter(t, (int)$1)" ($belong->elong filter))
+            NULL)))
+
+(defbuiltin (settexturewrap texture wrap)
+    (pragma "Texture2D t")
+    (when (%init-c-texture 'SetTextureWrap 1 texture "t")
+        (ensure-elong 'SetTextureWrap wrap 2
+            (pragma "SetTextureWrap(t, (int)$1)" ($belong->elong wrap))
+            NULL)))
+
+; Texture drawing functions
+
+(defbuiltin (drawtexture texture posX posY tint)
+    (pragma "Texture2D t")
+    (when (%init-c-texture 'DrawTexture 1 texture "t")
+        (ensure-elongs 'DrawTexture (posX posY) 2
+            (pragma "Color tint")
+            (when (%init-c-color 'DrawTexture 4 tint "tint")
+                (pragma "DrawTexture(t, (int)$1, (int)$2, tint)"
+                        ($belong->elong posX)
+                        ($belong->elong posY))
+                NULL))))
+
+(defbuiltin (drawtexturev texture position tint)
+    (pragma "Texture2D t;
+             Vector2 pos;
+             Color tint")
+    (when (and (%init-c-texture 'DrawTextureV 1 texture "t")
+               (%init-c-vector2 'DrawTextureV 2 position "pos")
+               (%init-c-color 'DrawTextureV 3 tint "tint"))
+        (pragma "DrawTextureV(t, pos, tint)")
+        NULL))
+
+(defbuiltin (drawtextureex texture position rotation scale tint)
+    (pragma "Texture2D t;
+             Vector2 pos")
+    (when (and (%init-c-texture 'DrawTextureEx 1 texture "t")
+               (%init-c-vector2 'DrawTextureEx 2 position "pos"))
+        (ensure-flonums 'DrawTextureEx (rotation scale) 3
+            (pragma "Color tint")
+            (when (%init-c-color 'DrawTextureEx 5 tint "tint")
+                (pragma "DrawTextureEx(t, pos, (float)$1, (float)$2, tint)"
+                        ($real->double rotation)
+                        ($real->double scale))
+                NULL))))
+
+(defbuiltin (drawtexturerec texture source position tint)
+    (pragma "Texture2D t;
+             Rectangle src;
+             Vector2 pos;
+             Color tint")
+    (when (and (%init-c-texture 'DrawTextureRec 1 texture "t")
+               (%init-c-rect 'DrawTextureRec 2 source "src")
+               (%init-c-vector2 'DrawTextureRec 3 position "pos")
+               (%init-c-color 'DrawTextureRec 4 tint "tint"))
+        (pragma "DrawTextureRec(t, src, pos, tint)")
+        NULL))
+
+(defbuiltin (drawtexturepro texture source dest origin rotation tint)
+    (pragma "Texture2D t;
+             Rectangle src, dst;
+             Vector2 origin")
+    (when (and (%init-c-texture 'DrawTexturePro 1 texture "t")
+               (%init-c-rect 'DrawTexturePro 2 source "src")
+               (%init-c-rect 'DrawTexturePro 3 dest "dst")
+               (%init-c-vector2 'DrawTexturePro 4 origin "origin"))
+        (ensure-flonum 'DrawTexturePro rotation 5
+            (pragma "Color tint")
+            (when (%init-c-color 'DrawTexturePro 6 tint "tint")
+                (pragma "DrawTexturePro(t, src, dst, origin, (float)$1, tint)"
+                        ($real->double rotation))
+                NULL))))
+
+(define-macro (%init-c-nPatchInfo func-name arg-idx nPatchInfo nPI)
+    `(ensure-hash ,func-name ,nPatchInfo ,arg-idx
+        (let ((size (php-hash-size ,nPatchInfo)))
+            (if (>=fx size 6)
+                (let ((source (php-hash-lookup ,nPatchInfo "source"))
+                      (left (php-hash-lookup ,nPatchInfo "left"))
+                      (top (php-hash-lookup ,nPatchInfo "top"))
+                      (right (php-hash-lookup ,nPatchInfo "right"))
+                      (bottom (php-hash-lookup ,nPatchInfo "bottom"))
+                      (layout (php-hash-lookup ,nPatchInfo "layout")))
+                    (%init-c-rect ,func-name (mkstr-v ,arg-idx " element 'source'") source ,(string-append nPI ".source"))
+                    (when source
+                        (unless (elong? left)
+                            (set! left (or (mkelong left 'arg-parsing)
+                                       (php-error ,func-name "() expects parameter " ,arg-idx " element 'left' to be integer, " (get-php-datatype left 'arg-parsing) " given"))))
+                        (unless (elong? top)
+                            (set! top (or (mkelong top 'arg-parsing)
+                                          (php-error ,func-name "() expects parameter " ,arg-idx " element 'top' to be integer, " (get-php-datatype top 'arg-parsing) " given"))))
+                        (unless (elong? right)
+                            (set! right (or (mkelong right 'arg-parsing)
+                                            (php-error ,func-name "() expects parameter " ,arg-idx " element 'right' to be integer, " (get-php-datatype right 'arg-parsing) " given"))))
+                        (unless (elong? bottom)
+                            (set! bottom (or (mkelong bottom 'arg-parsing)
+                                             (php-error ,func-name "() expects parameter " ,arg-idx " element 'bottom' to be integer, " (get-php-datatype bottom 'arg-parsing) " given"))))
+                        (unless (elong? layout)
+                            (set! layout (or (mkelong layout 'arg-parsing)
+                                             (php-error ,func-name "() expects parameter " ,arg-idx " element 'layout' to be integer, " (get-php-datatype layout 'arg-parsing) " given"))))
+                        (pragma ,(string-append nPI ".left   = (int)$1") ($belong->elong left))
+                        (pragma ,(string-append nPI ".top    = (int)$1") ($belong->elong top))
+                        (pragma ,(string-append nPI ".right  = (int)$1") ($belong->elong right))
+                        (pragma ,(string-append nPI ".bottom = (int)$1") ($belong->elong bottom))
+                        (pragma ,(string-append nPI ".layout = (int)$1") ($belong->elong layout))
+                        #t))
+                (php-error ,func-name "() expects parameter " ,arg-idx " to be array with 6(source, left, top, right, bottom, layout) elements, " size " given")))))
+
+(defbuiltin (drawtexturenpatch texture nPatchInfo dest origin rotation tint)
+    (pragma "Texture2D t;
+             NPatchInfo nPI;
+             Rectangle dst;
+             Vector2 origin")
+    (when (and (%init-c-texture 'DrawTextureNPatch 1 texture "t")
+               (%init-c-nPatchInfo 'DrawTextureNPatch 2 nPatchInfo "nPI")
+               (%init-c-rect 'DrawTextureNPatch 3 dest "dst")
+               (%init-c-vector2 'DrawTextureNPatch 4 origin "origin"))
+        (ensure-flonum 'DrawTextureNPatch rotation 5
+            (pragma "Color tint")
+            (when (%init-c-color 'DrawTextureNPatch 6 tint "tint")
+                (pragma "DrawTextureNPatch(t, nPI, dst, origin, (float)$1, tint)"
+                        ($real->double rotation))
+                NULL))))
 
 ; Color/pixel related functions
 

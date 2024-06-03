@@ -34,6 +34,7 @@ typedef enum {
 | Camera3D                            | array('position' => Vector3, 'target' => Vector3, 'up' => array(x,y,z), 'fovy' => , 'projection' => ) |
 | Texture,Texture2D,TextureCubemap    | array('id' => , 'width' => , 'height' => , 'mipmaps' => '', 'format' => ) |
 | RenderTexture,RenderTexture2D       | array('id' => , 'texture' => Texture, 'depth' => Texture)    |
+| NPatchInfo                          | array('source' => Rectangle, 'left' => , 'top' => , 'right' => , 'bottom' => , layout => '') |
 | Ray                                 | array('position' => Vector3, 'direction' => Vector3)         |
 | Matrix                              | array(m0,m1,m2,...m15)                                       |
 
