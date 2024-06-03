@@ -261,6 +261,7 @@
         (gettime)
         (getfps)
         ; Basic shapes drawing functions
+        (setshapestexture texture source)
         (drawpixel posX posY color)
         (drawpixelv position color)
         (drawline startPosX startPosY endPosX endPosY color)
@@ -353,6 +354,7 @@
         (loadimagepalette image maxPaletteSize colorCount)
         (getimagealphaborder image threshold)
         (getimagecolor image x y)
+        ; Image drawing functions
         ; Texture loading functions
         (loadtexture fileName)
         (loadtexturefromimage image)
@@ -632,20 +634,13 @@
 ; Window-related functions
 
 (defbuiltin (initwindow width height title)
-    (unless (elong? width)
-        (set! width (mkelongw 'InitWindow 1 width)))
-    (when width
-        (unless (elong? height)
-            (set! height (mkelongw 'InitWindow 2 height)))
-        (when height
-            (unless (string? title)
-                (set! title (mkstrw 'InitWindow 3 title)))
-            (when title
-                (pragma "InitWindow((int)$1, (int)$2, $3)"
-                        ($belong->elong width)
-                        ($belong->elong height)
-                        ($bstring->string title)))))
-    NULL)
+    (ensure-elongs 'InitWindow (width height) 1
+        (ensure-str 'InitWindow title 3
+            (pragma "InitWindow((int)$1, (int)$2, $3)"
+                    ($belong->elong width)
+                    ($belong->elong height)
+                    ($bstring->string title))
+            NULL)))
 
 (defbuiltin (closewindow)
     (pragma "CloseWindow()")
@@ -676,27 +671,21 @@
     (pragma::bool "IsWindowResized()"))
 
 (defbuiltin (iswindowstate flag)
-    (unless (elong? flag)
-        (set! flag (mkelongw 'IsWindowState 1 flag)))
-    (when flag
+    (ensure-elong 'IsWindowState flag 1
         (pragma::bool "IsWindowState((unsigned int)$1)"
                       ($belong->elong flag))))
 
 (defbuiltin (setwindowstate flags)
-    (unless (elong? flags)
-        (set! flags (mkelongw 'SetWindowState 1 flags)))
-    (when flags
+    (ensure-elong 'SetWindowState flags 1
         (pragma "SetWindowState((unsigned int)$1)"
-                ($belong->elong flags)))
-    NULL)
+                ($belong->elong flags))
+        NULL))
 
 (defbuiltin (clearwindowstate flags)
-    (unless (elong? flags)
-        (set! flags (mkelongw 'ClearWindowState 1 flags)))
-    (when flags
+    (ensure-elong 'ClearWindowState flags 1
         (pragma "ClearWindowState((unsigned int)$1)"
-                ($belong->elong flags)))
-    NULL)
+                ($belong->elong flags))
+        NULL))
 
 (defbuiltin (togglefullscreen)
     (pragma "ToggleFullscreen()")
@@ -759,15 +748,12 @@
             )))
 
 (defbuiltin (setwindowicon image)
-    (%ensure-image
-        'SetWindowIcon
-        (begin
-            (pragma "SetWindowIcon(*im)")
-            NULL)))
+    (%ensure-image 'SetWindowIcon
+        (pragma "SetWindowIcon(*im)")
+        NULL))
 
 (defbuiltin (setwindowicons images)
-    (set! images (mkhashw 'SetWindowIcons 1 images))
-    (when images
+    (ensure-hash 'SetWindowIcons images 1
         (let ((size (php-hash-size images)))
             (when (>fx size 0)
                 (pragma "Image *images;
@@ -777,80 +763,53 @@
                 (let loop ((image (php-hash-reset images 'cont)))
                     (when image
                         (set! image (container-value image))
-                        (%ensure-image
-                            'SetWindowIcons
+                        (%ensure-image 'SetWindowIcons
                             (pragma "images[count++] = *im"))
                         (loop (php-hash-advance images 'cont))))
                 (pragma "SetWindowIcons(images, count)")
                 NULL))))
 
 (defbuiltin (setwindowtitle title)
-    (unless (string? title)
-        (set! title (mkstrw 'SetWindowTitle 1 title)))
-    (when title
+    (ensure-str 'SetWindowTitle title 1
         (pragma "SetWindowTitle($1)" ($bstring->string title))
         NULL))
 
 (defbuiltin (setwindowposition x y)
-    (unless (elong? x)
-        (set! x (mkelongw 'SetWindowPosition 1 x)))
-    (when x
-        (unless (elong? y)
-            (set! y (mkelongw 'SetWindowPosition 2 y)))
-        (when y
-            (pragma "SetWindowPosition((int)$1, (int)$2)"
-                    ($belong->elong x)
-                    ($belong->elong y))
-            NULL)))
+    (ensure-elongs 'SetWindowPosition (x y) 1
+        (pragma "SetWindowPosition((int)$1, (int)$2)"
+                ($belong->elong x)
+                ($belong->elong y))
+        NULL))
 
 (defbuiltin (setwindowmonitor monitor)
-    (unless (elong? monitor)
-        (set! monitor (mkelongw 'SetWindowMonitor 1 monitor)))
-    (when monitor
+    (ensure-elong 'SetWindowMonitor monitor 1
         (pragma "SetWindowMonitor((int)$1)"
                 ($belong->elong monitor))
         NULL))
 
 (defbuiltin (setwindowminsize width height)
-    (unless (elong? width)
-        (set! width (mkelongw 'SetWindowMinSize 1 width)))
-    (when width
-        (unless (elong? height)
-            (set! height (mkelongw 'SetWindowMinSize 2 height)))
-        (when height
-            (pragma "SetWindowMinSize((int)$1, (int)$2)"
-                    ($belong->elong width)
-                    ($belong->elong height))
-            NULL)))
+    (ensure-elongs 'SetWindowMinSize (width height) 1
+        (pragma "SetWindowMinSize((int)$1, (int)$2)"
+                ($belong->elong width)
+                ($belong->elong height))
+        NULL))
 
 (defbuiltin (setwindowmaxsize width height)
-    (unless (elong? width)
-        (set! width (mkelongw 'SetWindowMaxSize 1 width)))
-    (when width
-        (unless (elong? height)
-            (set! height (mkelongw 'SetWindowMaxSize 2 height)))
-        (when height
-            (pragma "SetWindowMaxSize((int)$1, (int)$2)"
-                    ($belong->elong width)
-                    ($belong->elong height))
-            NULL)))
+    (ensure-elongs 'SetWindowMaxSize (width height) 1
+        (pragma "SetWindowMaxSize((int)$1, (int)$2)"
+                ($belong->elong width)
+                ($belong->elong height))
+        NULL))
 
 (defbuiltin (setwindowsize width height)
-    (unless (elong? width)
-        (set! width (mkelongw 'SetWindowSize 1 width)))
-    (when width
-        (unless (elong? height)
-            (set! height (mkelongw 'SetWindowSize 2 height)))
-        (when height
-            (pragma "SetWindowSize((int)$1, (int)$2)"
-                    ($belong->elong width)
-                    ($belong->elong height))
-            NULL)))
+    (ensure-elongs 'SetWindowSize (width height) 1
+        (pragma "SetWindowSize((int)$1, (int)$2)"
+                ($belong->elong width)
+                ($belong->elong height))
+        NULL))
 
 (defbuiltin (setwindowopacity opacity)
-    (unless (flonum? opacity)
-        (set! opacity (mkflonumw 'SetWindowOpacity 1 opacity)))
-    (when opacity
+    (ensure-flonum 'SetWindowOpacity opacity 1
         (pragma "SetWindowOpacity((float)$1)"
                 ($real->double opacity))
         NULL))
@@ -878,41 +837,29 @@
     (pragma::elong "GetCurrentMonitor()"))
 
 (defbuiltin (getmonitorposition monitor)
-    (unless (elong? monitor)
-        (set! monitor (mkelongw 'GetMonitorPosition 1 monitor)))
-    (when monitor
+    (ensure-elong 'GetMonitorPosition monitor 1
         (pragma "Vector2 v2")
         (pragma "v2 = GetMonitorPosition((int)$1)" ($belong->elong monitor))
         (%mkvector2-v "v2")))
 
 (defbuiltin (getmonitorwidth monitor)
-    (unless (elong? monitor)
-        (set! monitor (mkelongw 'GetMonitorWidth 1 monitor)))
-    (when monitor
+    (ensure-elong 'GetMonitorWidth monitor 1
         (pragma::elong "GetMonitorWidth((int)$1)" ($belong->elong monitor))))
 
 (defbuiltin (getmonitorheight monitor)
-    (unless (elong? monitor)
-        (set! monitor (mkelongw 'GetMonitorHeight 1 monitor)))
-    (when monitor
+    (ensure-elong 'GetMonitorHeight monitor 1
         (pragma::elong "GetMonitorHeight((int)$1)" ($belong->elong monitor))))
 
 (defbuiltin (getmonitorphysicalwidth monitor)
-    (unless (elong? monitor)
-        (set! monitor (mkelongw 'GetMonitorPhysicalWidth 1 monitor)))
-    (when monitor
+    (ensure-elong 'GetMonitorPhysicalWidth monitor 1
         (pragma::elong "GetMonitorPhysicalWidth((int)$1)" ($belong->elong monitor))))
 
 (defbuiltin (getmonitorphysicalheight monitor)
-    (unless (elong? monitor)
-        (set! monitor (mkelongw 'GetMonitorPhysicalHeight 1 monitor)))
-    (when monitor
+    (ensure-elong 'GetMonitorPhysicalHeight monitor 1
         (pragma::elong "GetMonitorPhysicalHeight((int)$1)" ($belong->elong monitor))))
 
 (defbuiltin (getmonitorrefreshrate monitor)
-    (unless (elong? monitor)
-        (set! monitor (mkelongw 'GetMonitorRefreshRate 1 monitor)))
-    (when monitor
+    (ensure-elong 'GetMonitorRefreshRate monitor 1
         (pragma::elong "GetMonitorRefreshRate((int)$1)" ($belong->elong monitor))))
 
 (defbuiltin (getwindowposition)
@@ -924,15 +871,11 @@
     (%mkvector2-v "v2"))
 
 (defbuiltin (getmonitorname monitor)
-    (unless (elong? monitor)
-        (set! monitor (mkelongw 'GetMonitorName 1 monitor)))
-    (when monitor
+    (ensure-elong 'GetMonitorName monitor 1
         (pragma::string "(char *)GetMonitorName((int)$1)" ($belong->elong monitor))))
 
 (defbuiltin (setclipboardtext text)
-    (unless (string? text)
-        (set! text (mkstrw 'SetClipboardText 1 text)))
-    (when text
+    (ensure-str 'SetClipboardText text 1
         (pragma "SetClipboardText($1)" ($bstring->string text))
         NULL))
 
@@ -980,8 +923,7 @@
         (pragma "Vector2 *points = NULL;
                  int pointCount = 0")
         (unless (null? points)
-            (set! points (mkhashw ,func-name ,arg-idx points))
-            (when points
+            (ensure-hash ,func-name points ,arg-idx
                 (let ((size (php-hash-size points)))
                     (when (>fx size 0)
                         (pragma "points = (Vector2 *)GC_MALLOC_ATOMIC(sizeof(Vector2) * $1)"
@@ -1002,8 +944,7 @@
         (pragma "Vector3 *points = NULL;
                  int pointCount = 0")
         (unless (null? points)
-            (set! points (mkhashw ,func-name ,arg-idx points))
-            (when points
+            (ensure-hash ,func-name points ,arg-idx
                 (let ((size (php-hash-size points)))
                     (when (>fx size 0)
                         (pragma "points = (Vector3 *)GC_MALLOC_ATOMIC(sizeof(Vector3) * $1)"
@@ -1020,126 +961,116 @@
         ,@code))
 
 (define-macro (%init-c-camera2d func-name arg-idx camera2d cm2d)
-    `(begin
-        (set! ,camera2d (mkhashw ,func-name ,arg-idx ,camera2d))
-        (when ,camera2d
-            (let ((size (php-hash-size ,camera2d)))
-                (if (>=fx size 4)
-                    (let ((offset (php-hash-lookup ,camera2d "offset"))
-                          (target (php-hash-lookup ,camera2d "target"))
-                          (rotation (php-hash-lookup ,camera2d "rotation"))
-                          (zoom (php-hash-lookup ,camera2d "zoom")))
-                        (%init-c-vector2 ,func-name (mkstr-v ,arg-idx " element 'offset'") offset ,(string-append cm2d ".offset"))
-                        (when offset
-                            (%init-c-vector2 ,func-name (mkstr-v ,arg-idx " element 'target'") target ,(string-append cm2d ".target"))
-                            (when target
-                                (unless (flonum? rotation)
-                                    (set! rotation (or (mkflonum rotation 'arg-parsing)
-                                                       (php-error ,func-name "() expects parameter " ,arg-idx " element rotation to be float, " (get-php-datatype rotation 'arg-parsing) " given"))))
-                                (unless (flonum? zoom)
-                                    (set! zoom (or (mkflonum zoom 'arg-parsing)
-                                                   (php-error ,func-name "() expects parameter " ,arg-idx " element zoom to be float, " (get-php-datatype zoom 'arg-parsing) " given"))))
-                                (pragma ,(string-append cm2d ".rotation = (float)$1") ($real->double rotation))
-                                (pragma ,(string-append cm2d ".zoom = (float)$1") ($real->double zoom))
-                                #t)))
-                    (php-error ,func-name "() expects parameter " ,arg-idx " to be array with 4(offset, target, rotation, zoom) elements, " size " given"))))))
+    `(ensure-hash ,func-name ,camera2d ,arg-idx
+        (let ((size (php-hash-size ,camera2d)))
+            (if (>=fx size 4)
+                (let ((offset (php-hash-lookup ,camera2d "offset"))
+                      (target (php-hash-lookup ,camera2d "target"))
+                      (rotation (php-hash-lookup ,camera2d "rotation"))
+                      (zoom (php-hash-lookup ,camera2d "zoom")))
+                    (%init-c-vector2 ,func-name (mkstr-v ,arg-idx " element 'offset'") offset ,(string-append cm2d ".offset"))
+                    (when offset
+                        (%init-c-vector2 ,func-name (mkstr-v ,arg-idx " element 'target'") target ,(string-append cm2d ".target"))
+                        (when target
+                            (unless (flonum? rotation)
+                                (set! rotation (or (mkflonum rotation 'arg-parsing)
+                                                   (php-error ,func-name "() expects parameter " ,arg-idx " element rotation to be float, " (get-php-datatype rotation 'arg-parsing) " given"))))
+                            (unless (flonum? zoom)
+                                (set! zoom (or (mkflonum zoom 'arg-parsing)
+                                               (php-error ,func-name "() expects parameter " ,arg-idx " element zoom to be float, " (get-php-datatype zoom 'arg-parsing) " given"))))
+                            (pragma ,(string-append cm2d ".rotation = (float)$1") ($real->double rotation))
+                            (pragma ,(string-append cm2d ".zoom = (float)$1") ($real->double zoom))
+                            #t)))
+                (php-error ,func-name "() expects parameter " ,arg-idx " to be array with 4(offset, target, rotation, zoom) elements, " size " given")))))
 
 (define-macro (%init-c-camera3d func-name arg-idx camera3d cm3d)
-    `(begin
-        (set! ,camera3d (mkhashw ,func-name ,arg-idx ,camera3d))
-        (when ,camera3d
-            (let ((size (php-hash-size ,camera3d)))
-                (if (>=fx size 5)
-                    (let ((position (php-hash-lookup ,camera3d "position"))
-                          (target (php-hash-lookup ,camera3d "target"))
-                          (up (php-hash-lookup ,camera3d "up"))
-                          (fovy (php-hash-lookup ,camera3d "fovy"))
-                          (projection (php-hash-lookup ,camera3d "projection")))
-                        (%init-c-vector3 ,func-name (mkstr-v ,arg-idx " element 'position'") position ,(string-append cm3d ".position"))
-                        (when position
-                            (%init-c-vector3 ,func-name (mkstr-v ,arg-idx " element 'target'") target ,(string-append cm3d ".target"))
-                            (when target
-                                (%init-c-vector3 ,func-name (mkstr-v ,arg-idx " element 'up'") up ,(string-append cm3d ".up"))
-                                (when up
-                                    (unless (flonum? fovy)
-                                        (set! fovy (or (mkflonum fovy 'arg-parsing)
-                                                       (php-error ,func-name "() expects parameter " ,arg-idx " element 'fovy' to be float, " (get-php-datatype fovy 'arg-parsing) " given"))))
-                                    (unless (elong? projection)
-                                        (set! projection (or (mkelong projection 'arg-parsing)
-                                                             (php-error ,func-name "() expects parameter " ,arg-idx " element 'projection' to be integer, " (get-php-datatype projection 'arg-parsing) " given"))))
-                                    (pragma ,(string-append cm3d ".fovy = (float)$1") ($real->double fovy))
-                                    (pragma ,(string-append cm3d ".projection = (int)$1") ($belong->elong projection))
-                                    #t))))
-                    (php-error ,func-name "() expects parameter " ,arg-idx " to be array with 5(position, target, up, fovy, projection) elements, " size " given"))))))
+    `(ensure-hash ,func-name ,camera3d ,arg-idx
+        (let ((size (php-hash-size ,camera3d)))
+            (if (>=fx size 5)
+                (let ((position (php-hash-lookup ,camera3d "position"))
+                      (target (php-hash-lookup ,camera3d "target"))
+                      (up (php-hash-lookup ,camera3d "up"))
+                      (fovy (php-hash-lookup ,camera3d "fovy"))
+                      (projection (php-hash-lookup ,camera3d "projection")))
+                    (%init-c-vector3 ,func-name (mkstr-v ,arg-idx " element 'position'") position ,(string-append cm3d ".position"))
+                    (when position
+                        (%init-c-vector3 ,func-name (mkstr-v ,arg-idx " element 'target'") target ,(string-append cm3d ".target"))
+                        (when target
+                            (%init-c-vector3 ,func-name (mkstr-v ,arg-idx " element 'up'") up ,(string-append cm3d ".up"))
+                            (when up
+                                (unless (flonum? fovy)
+                                    (set! fovy (or (mkflonum fovy 'arg-parsing)
+                                                   (php-error ,func-name "() expects parameter " ,arg-idx " element 'fovy' to be float, " (get-php-datatype fovy 'arg-parsing) " given"))))
+                                (unless (elong? projection)
+                                    (set! projection (or (mkelong projection 'arg-parsing)
+                                                         (php-error ,func-name "() expects parameter " ,arg-idx " element 'projection' to be integer, " (get-php-datatype projection 'arg-parsing) " given"))))
+                                (pragma ,(string-append cm3d ".fovy = (float)$1") ($real->double fovy))
+                                (pragma ,(string-append cm3d ".projection = (int)$1") ($belong->elong projection))
+                                #t))))
+                (php-error ,func-name "() expects parameter " ,arg-idx " to be array with 5(position, target, up, fovy, projection) elements, " size " given")))))
 
 (define-macro (%init-c-ray func-name arg-idx ray r)
-    `(begin
-        (set! ,ray (mkhashw ,func-name ,arg-idx ,ray))
-        (when ,ray
-            (let ((size (php-hash-size ,ray)))
-                (if (>=fx size 2)
-                    (let ((position (php-hash-lookup ,ray "position"))
-                          (direction (php-hash-lookup ,ray "direction")))
-                        (%init-c-vector3 ,func-name (mkstr-v ,arg-idx " element 'position'") position ,(string-append r ".position"))
-                        (when position
-                            (%init-c-vector3 ,func-name (mkstr-v ,arg-idx " element 'direction'") direction ,(string-append r ".direction"))
-                            (when direction
-                                #t)))
-                    (php-error ,func-name "() expects parameter " ,arg-idx " to be array with 2(position, direction) elements, " size " given"))))))
+    `(ensure-hash ,func-name ,ray ,arg-idx
+        (let ((size (php-hash-size ,ray)))
+            (if (>=fx size 2)
+                (let ((position (php-hash-lookup ,ray "position"))
+                      (direction (php-hash-lookup ,ray "direction")))
+                    (%init-c-vector3 ,func-name (mkstr-v ,arg-idx " element 'position'") position ,(string-append r ".position"))
+                    (when position
+                        (%init-c-vector3 ,func-name (mkstr-v ,arg-idx " element 'direction'") direction ,(string-append r ".direction"))
+                        (when direction
+                            #t)))
+                (php-error ,func-name "() expects parameter " ,arg-idx " to be array with 2(position, direction) elements, " size " given")))))
 
 (define-macro (%init-c-texture func-name arg-idx texture t)
-    `(begin
-        (set! ,texture (mkhashw ,func-name ,arg-idx ,texture))
-        (when ,texture
-            (let ((size (php-hash-size ,texture)))
-                (if (>=fx size 5)
-                    (let ((id (php-hash-lookup ,texture "id"))
-                          (width (php-hash-lookup ,texture "width"))
-                          (height (php-hash-lookup ,texture "height"))
-                          (mipmaps (php-hash-lookup ,texture "mipmaps"))
-                          (format (php-hash-lookup , texture "format")))
-                        (unless (elong? id)
-                            (set! id (or (mkelong id 'arg-parsing)
-                                         (php-error ,func-name "() expects parameter " , arg-idx " element 'id' to be integer, " (get-php-datatype id 'arg-parsing) " given"))))
-                        (unless (elong? width)
-                            (set! width (or (mkelong width 'arg-parsing)
-                                            (php-error ,func-name "() expects parameter " , arg-idx " element 'width' to be integer, " (get-php-datatype width 'arg-parsing) " given"))))
-                        (unless (elong? height)
-                            (set! height (or (mkelong height 'arg-parsing)
-                                             (php-error ,func-name "() expects parameter " , arg-idx " element 'height' to be integer, " (get-php-datatype height 'arg-parsing) " given"))))
-                        (unless (elong? mipmaps)
-                            (set! mipmaps (or (mkelong mipmaps 'arg-parsing)
-                                              (php-error ,func-name "() expects parameter " , arg-idx " element 'mipmaps' to be integer, " (get-php-datatype mipmaps 'arg-parsing) " given"))))
-                        (unless (elong? format)
-                            (set! format (or (mkelong format 'arg-parsing)
-                                             (php-error ,func-name "() expects parameter " , arg-idx " element 'format' to be integer, " (get-php-datatype format 'arg-parsing) " given"))))
-                        (pragma ,(string-append t ".id = (unsigned int)$1") ($belong->elong id))
-                        (pragma ,(string-append t ".width = (int)$1") ($belong->elong width))
-                        (pragma ,(string-append t ".height = (int)$1") ($belong->elong height))
-                        (pragma ,(string-append t ".mipmaps = (int)$1") ($belong->elong mipmaps))
-                        (pragma ,(string-append t ".format = (int)$1") ($belong->elong format))
-                        #t)
-                    (php-error ,func-name "() expects parameter " ,arg-idx " to be array with 5(id, width, height, mipmaps, format) elements, " size " given"))))))
+    `(ensure-hash ,func-name ,texture ,arg-idx
+        (let ((size (php-hash-size ,texture)))
+            (if (>=fx size 5)
+                (let ((id (php-hash-lookup ,texture "id"))
+                      (width (php-hash-lookup ,texture "width"))
+                      (height (php-hash-lookup ,texture "height"))
+                      (mipmaps (php-hash-lookup ,texture "mipmaps"))
+                      (format (php-hash-lookup , texture "format")))
+                    (unless (elong? id)
+                        (set! id (or (mkelong id 'arg-parsing)
+                                     (php-error ,func-name "() expects parameter " , arg-idx " element 'id' to be integer, " (get-php-datatype id 'arg-parsing) " given"))))
+                    (unless (elong? width)
+                        (set! width (or (mkelong width 'arg-parsing)
+                                        (php-error ,func-name "() expects parameter " , arg-idx " element 'width' to be integer, " (get-php-datatype width 'arg-parsing) " given"))))
+                    (unless (elong? height)
+                        (set! height (or (mkelong height 'arg-parsing)
+                                         (php-error ,func-name "() expects parameter " , arg-idx " element 'height' to be integer, " (get-php-datatype height 'arg-parsing) " given"))))
+                    (unless (elong? mipmaps)
+                        (set! mipmaps (or (mkelong mipmaps 'arg-parsing)
+                                          (php-error ,func-name "() expects parameter " , arg-idx " element 'mipmaps' to be integer, " (get-php-datatype mipmaps 'arg-parsing) " given"))))
+                    (unless (elong? format)
+                        (set! format (or (mkelong format 'arg-parsing)
+                                         (php-error ,func-name "() expects parameter " , arg-idx " element 'format' to be integer, " (get-php-datatype format 'arg-parsing) " given"))))
+                    (pragma ,(string-append t ".id = (unsigned int)$1") ($belong->elong id))
+                    (pragma ,(string-append t ".width = (int)$1") ($belong->elong width))
+                    (pragma ,(string-append t ".height = (int)$1") ($belong->elong height))
+                    (pragma ,(string-append t ".mipmaps = (int)$1") ($belong->elong mipmaps))
+                    (pragma ,(string-append t ".format = (int)$1") ($belong->elong format))
+                    #t)
+                (php-error ,func-name "() expects parameter " ,arg-idx " to be array with 5(id, width, height, mipmaps, format) elements, " size " given")))))
 
 (define-macro (%init-c-render-texture func-name arg-idx render-texture rt)
-    `(begin
-        (set! ,render-texture (mkhashw ,func-name ,arg-idx ,render-texture))
-        (when ,render-texture
-            (let ((size (php-hash-size ,render-texture)))
-                (if (>=fx size 3)
-                    (let ((id (php-hash-lookup ,render-texture "id"))
-                          (texture (php-hash-lookup ,render-texture "texture"))
-                          (depth (php-hash-lookup ,render-texture "depth")))
-                        (unless (elong? id)
-                            (set! id (or (mkelong id 'arg-parsing)
-                                         (php-error ,func-name "() expects parameter " ,arg-idx " element 'id' to be integer, " (get-php-datatype id 'arg-parsing) " given"))))
-                        (%init-c-texture ,func-name (mkstr-v ,arg-idx " element 'texture'") texture ,(string-append rt ".texture"))
-                        (when texture
-                            (%init-c-texture ,func-name (mkstr-v ,arg-idx " element 'depth'") depth ,(string-append rt ".depth"))
-                            (when depth
-                                (pragma ,(string-append rt ".id = (unsigned int)$1") ($belong->elong id))
-                                #t)))
-                    (php-error ,func-name "() expects parameter " ,arg-idx " to be array with 3(id, texture, depth) elements, " size " given"))))))
+    `(ensure-hash ,func-name ,render-texture ,arg-idx
+        (let ((size (php-hash-size ,render-texture)))
+            (if (>=fx size 3)
+                (let ((id (php-hash-lookup ,render-texture "id"))
+                      (texture (php-hash-lookup ,render-texture "texture"))
+                      (depth (php-hash-lookup ,render-texture "depth")))
+                    (unless (elong? id)
+                        (set! id (or (mkelong id 'arg-parsing)
+                                     (php-error ,func-name "() expects parameter " ,arg-idx " element 'id' to be integer, " (get-php-datatype id 'arg-parsing) " given"))))
+                    (%init-c-texture ,func-name (mkstr-v ,arg-idx " element 'texture'") texture ,(string-append rt ".texture"))
+                    (when texture
+                        (%init-c-texture ,func-name (mkstr-v ,arg-idx " element 'depth'") depth ,(string-append rt ".depth"))
+                        (when depth
+                            (pragma ,(string-append rt ".id = (unsigned int)$1") ($belong->elong id))
+                            #t)))
+                (php-error ,func-name "() expects parameter " ,arg-idx " to be array with 3(id, texture, depth) elements, " size " given")))))
 
 (defbuiltin (clearbackground color)
     (pragma "Color c")
@@ -1188,38 +1119,23 @@
 ; Text drawing functions
 
 (defbuiltin (drawfps posX posY)
-    (unless (elong? posX)
-        (set! posX (mkelongw 'DrawFPS 1 posX)))
-    (when posX
-        (unless (elong? posY)
-            (set! posY (mkelongw 'DrawFPS 2 posY)))
-        (when posY
-            (pragma "DrawFPS((int)$1, (int)$2)"
-                    ($belong->elong posX)
-                    ($belong->elong posY))
-            NULL)))
+    (ensure-elongs 'DrawFPS (posX posY) 1
+        (pragma "DrawFPS((int)$1, (int)$2)"
+                ($belong->elong posX)
+                ($belong->elong posY))
+        NULL))
 
 (defbuiltin (drawtext text posX posY fontSize color)
-    (unless (string? text)
-        (set! text (mkstrw 'DrawText 1 text)))
-    (when text
-        (unless (elong? posX)
-            (set! posX (mkelongw 'DrawText 2 posX)))
-        (when posX
-            (unless (elong? posY)
-                (set! posY (mkelongw 'DrawText 3 posY)))
-            (when posY
-                (unless (elong? fontSize)
-                    (set! fontSize (mkelongw 'DrawText 4 fontSize)))
-                (when fontSize
-                    (pragma "Color c")
-                    (when (%init-c-color 'DrawText 5 color "c")
-                        (pragma "DrawText($1, (int)$2, (int)$3, (int)$4, c)"
-                                ($bstring->string text)
-                                ($belong->elong posX)
-                                ($belong->elong posY)
-                                ($belong->elong fontSize)))))))
-    NULL)
+    (ensure-str 'DrawText text 1
+        (ensure-elongs 'DrawText (posX posY fontSize) 2
+            (pragma "Color c")
+            (when (%init-c-color 'DrawText 5 color "c")
+                (pragma "DrawText($1, (int)$2, (int)$3, (int)$4, c)"
+                        ($bstring->string text)
+                        ($belong->elong posX)
+                        ($belong->elong posY)
+                        ($belong->elong fontSize))
+                NULL))))
 
 ; Screen-space-related functions
 
@@ -1270,17 +1186,12 @@
              Camera cm3d")
     (when (and (%init-c-vector3 'GetWorldToScreenEx 1 position "pos")
                (%init-c-camera3d 'GetWorldToScreenEx 2 camera "cm3d"))
-        (unless (elong? width)
-            (set! width (mkelongw 'GetWorldToScreenEx 3 width)))
-        (when width
-            (unless (elong? height)
-                (set! height (mkelongw 'GetWorldToScreenEx 4 height)))
-            (when height
-                (pragma "Vector2 v2")
-                (pragma "v2 = GetWorldToScreenEx(pos, cm3d, (int)$1, (int)$2)"
-                        ($belong->elong width)
-                        ($belong->elong height))
-                (%mkvector2-v "v2")))))
+        (ensure-elongs 'GetWorldToScreenEx (width height) 3
+            (pragma "Vector2 v2")
+            (pragma "v2 = GetWorldToScreenEx(pos, cm3d, (int)$1, (int)$2)"
+                    ($belong->elong width)
+                    ($belong->elong height))
+            (%mkvector2-v "v2"))))
 
 (defbuiltin (getworldtoscreen2d position camera)
     (pragma "Vector2 pos;
@@ -1293,12 +1204,10 @@
 ; Timing-related functions
 
 (defbuiltin (settargetfps fps)
-    (unless (elong? fps)
-        (set! fps (mkelongw 'SetTargetFPS 1 fps)))
-    (when fps
+    (ensure-elong 'SetTargetFPS fps 1
         (pragma "SetTargetFPS((int)$1)"
-                ($belong->elong fps)))
-    NULL)
+                ($belong->elong fps))
+        NULL))
 
 (defbuiltin (getframetime)
     (pragma::double "GetFrameTime()"))
@@ -1320,18 +1229,13 @@
         NULL))
 
 (defbuiltin (drawpixel posX posY color)
-    (unless (elong? posX)
-        (set! posX (mkelongw 'DrawPixel 1 posX)))
-    (when posX
-        (unless (elong? posY)
-            (set! posY (mkelongw 'DrawPixel 2 posY)))
-        (when posY
-            (pragma "Color c")
-            (when (%init-c-color 'DrawPixel 3 color "c")
-                (pragma "DrawPixel((int)$1, (int)$2, c)"
-                        ($belong->elong posX)
-                        ($belong->elong posY))
-                NULL))))
+    (ensure-elongs 'DrawPixel (posX posY) 1
+        (pragma "Color c")
+        (when (%init-c-color 'DrawPixel 3 color "c")
+            (pragma "DrawPixel((int)$1, (int)$2, c)"
+                    ($belong->elong posX)
+                    ($belong->elong posY))
+            NULL)))
 
 (defbuiltin (drawpixelv position color)
     (pragma "Vector2 pos;
@@ -1342,26 +1246,15 @@
         NULL))
 
 (defbuiltin (drawline startPosX startPosY endPosX endPosY color)
-    (unless (elong? startPosX)
-        (set! startPosX (mkelongw 'DrawLine 1 startPosX)))
-    (when startPosX
-        (unless (elong? startPosY)
-            (set! startPosY (mkelongw 'DrawLine 2 startPosY)))
-        (when startPosY
-            (unless (elong? endPosX)
-                (set! endPosX (mkelongw 'DrawLine 3 endPosX)))
-            (when endPosX
-                (unless (elong? endPosY)
-                    (set! endPosY (mkelongw 'DrawLine 4 endPosY)))
-                (when endPosY
-                    (pragma "Color c")
-                    (when (%init-c-color 'DrawLine 5 color "c")
-                        (pragma "DrawLine((int)$1, (int)$2, (int)$3, (int)$4, c)"
-                                ($belong->elong startPosX)
-                                ($belong->elong startPosY)
-                                ($belong->elong endPosX)
-                                ($belong->elong endPosY))
-                        NULL))))))
+    (ensure-elongs 'DrawLine (startPosX startPosY endPosX endPosY) 1
+        (pragma "Color c")
+        (when (%init-c-color 'DrawLine 5 color "c")
+            (pragma "DrawLine((int)$1, (int)$2, (int)$3, (int)$4, c)"
+                    ($belong->elong startPosX)
+                    ($belong->elong startPosY)
+                    ($belong->elong endPosX)
+                    ($belong->elong endPosY))
+            NULL)))
 
 (defbuiltin (drawlinev startPos endPos color)
     (pragma "Vector2 startPos, endPos;
@@ -1376,9 +1269,7 @@
     (pragma "Vector2 startPos, endPos")
     (when (and (%init-c-vector2 'DrawLineEx 1 startPos "startPos")
                (%init-c-vector2 'DrawLineEx 2 endPos "endPos"))
-        (unless (flonum? thick)
-            (set! thick (mkflonumw 'DrawLineEx 3 thick)))
-        (when thick
+        (ensure-flonum 'DrawLineEx thick 3
             (pragma "Color c")
             (when (%init-c-color 'DrawLineEx 4 color "c")
                 (pragma "DrawLineEx(startPos, endPos, (float)$1, c)"
@@ -1386,9 +1277,7 @@
                 NULL))))
 
 (defbuiltin (drawlinestrip points color)
-    (%with-c-vector2-points
-        'DrawLineStrip
-        1
+    (%with-c-vector2-points 'DrawLineStrip 1
         (when (pragma::bool "points")
             (pragma "Color c")
             (when (%init-c-color 'DrawLineStrip 2 color "c")
@@ -1399,9 +1288,7 @@
     (pragma "Vector2 startPos, endPos")
     (when (and (%init-c-vector2 'DrawLineBezier 1 startPos "startPos")
                (%init-c-vector2 'DrawLineBezier 2 endPos "endPos"))
-        (unless (flonum? thick)
-            (set! thick (mkflonumw 'DrawLineBezier 3 thick)))
-        (when thick
+        (ensure-flonum 'DrawLineBezier thick 3
             (pragma "Color c")
             (when (%init-c-color 'DrawLineBezier 4 color "c")
                 (pragma "DrawLineBezier(startPos, endPos, (float)$1, c)"
@@ -1409,96 +1296,60 @@
                 NULL))))
 
 (defbuiltin (drawcircle centerX centerY radius color)
-    (unless (elong? centerX)
-        (set! centerX (mkelongw 'DrawCircle 1 centerX)))
-    (when centerX
-        (unless (elong? centerY)
-            (set! centerY (mkelongw 'DrawCircle 2 centerY)))
-        (when centerY
-            (unless (flonum? radius)
-                (set! radius (mkflonumw 'DrawCircle 3 radius)))
-            (when radius
-                (pragma "Color c")
-                (when (%init-c-color 'DrawCircle 4 color "c")
-                    (pragma "DrawCircle((int)$1, (int)$2, (float)$3, c)"
-                            ($belong->elong centerX)
-                            ($belong->elong centerY)
-                            ($real->double radius))
-                    NULL)))))
+    (ensure-elongs 'DrawCircle (centerX centerY) 1
+        (ensure-flonum 'DrawCircle radius 3
+            (pragma "Color c")
+            (when (%init-c-color 'DrawCircle 4 color "c")
+                (pragma "DrawCircle((int)$1, (int)$2, (float)$3, c)"
+                        ($belong->elong centerX)
+                        ($belong->elong centerY)
+                        ($real->double radius))
+                NULL))))
 
 (defbuiltin (drawcirclesector center radius startAngle endAngle segments color)
     (pragma "Vector2 center")
     (when (%init-c-vector2 'DrawCircleSector 1 center "center")
-        (unless (flonum? radius)
-            (set! radius (mkflonumw 'DrawCircleSector 2 radius)))
-        (when radius
-            (unless (flonum? startAngle)
-                (set! startAngle (mkflonumw 'DrawCircleSector 3 startAngle)))
-            (when startAngle
-                (unless (flonum? endAngle)
-                    (set! endAngle (mkflonumw 'DrawCircleSector 4 endAngle)))
-                (when endAngle
-                    (unless (elong? segments)
-                        (set! segments (mkelongw 'DrawCircleSector 5 segments)))
-                    (when segments
-                        (pragma "Color c")
-                        (when (%init-c-color 'DrawCircleSector 6 color "c")
-                            (pragma "DrawCircleSector(center, (float)$1, (float)$2, (float)$3, (int)$4, c)"
-                                    ($real->double radius)
-                                    ($real->double startAngle)
-                                    ($real->double endAngle)
-                                    ($belong->elong segments))
-                            NULL)))))))
+        (ensure-flonums 'DrawCircleSector (radius startAngle endAngle) 2
+            (ensure-elong 'DrawCircleSector segments 5
+                (pragma "Color c")
+                (when (%init-c-color 'DrawCircleSector 6 color "c")
+                    (pragma "DrawCircleSector(center, (float)$1, (float)$2, (float)$3, (int)$4, c)"
+                            ($real->double radius)
+                            ($real->double startAngle)
+                            ($real->double endAngle)
+                            ($belong->elong segments))
+                    NULL)))))
 
 (defbuiltin (drawcirclesectorlines center radius startAngle endAngle segments color)
     (pragma "Vector2 center")
     (when (%init-c-vector2 'DrawCircleSectorLines 1 center "center")
-        (unless (flonum? radius)
-            (set! radius (mkflonumw 'DrawCircleSectorLines 2 radius)))
-        (when radius
-            (unless (flonum? startAngle)
-                (set! startAngle (mkflonumw 'DrawCircleSectorLines 3 startAngle)))
-            (when startAngle
-                (unless (flonum? endAngle)
-                    (set! endAngle (mkflonumw 'DrawCircleSectorLines 4 endAngle)))
-                (when endAngle
-                    (unless (elong? segments)
-                        (set! segments (mkelongw 'DrawCircleSectorLines 5 segments)))
-                    (when segments
-                        (pragma "Color c")
-                        (when (%init-c-color 'DrawCircleSectorLines 6 color "c")
-                            (pragma "DrawCircleSectorLines(center, (float)$1, (float)$2, (float)$3, (int)$4, c)"
-                                    ($real->double radius)
-                                    ($real->double startAngle)
-                                    ($real->double endAngle)
-                                    ($belong->elong segments))
-                            NULL)))))))
+        (ensure-flonums 'DrawCircleSectorLines (radius startAngle endAngle) 2
+            (ensure-elong 'DrawCircleSectorLines segments 5
+                (pragma "Color c")
+                (when (%init-c-color 'DrawCircleSectorLines 6 color "c")
+                    (pragma "DrawCircleSectorLines(center, (float)$1, (float)$2, (float)$3, (int)$4, c)"
+                            ($real->double radius)
+                            ($real->double startAngle)
+                            ($real->double endAngle)
+                            ($belong->elong segments))
+                    NULL)))))
 
 (defbuiltin (drawcirclegradient centerX centerY radius color1 color2)
-    (unless (elong? centerX)
-        (set! centerX (mkelongw 'DrawCircleGradient 1 centerX)))
-    (when centerX
-        (unless (elong? centerY)
-            (set! centerY (mkelongw 'DrawCircleGradient 2 centerY)))
-        (when centerY
-            (unless (flonum? radius)
-                (set! radius (mkflonumw 'DrawCircleGradient 3 radius)))
-            (when radius
-                (pragma "Color c1, c2")
-                (when (and (%init-c-color 'DrawCircleGradient 4 color1 "c1")
-                           (%init-c-color 'DrawCircleGradient 5 color2 "c2"))
-                    (pragma "DrawCircleGradient((int)$1, (int)$2, (float)$3, c1, c2)"
-                            ($belong->elong centerX)
-                            ($belong->elong centerY)
-                            ($real->double radius))
-                    NULL)))))
+    (ensure-elongs 'DrawCircleGradient (centerX centerY) 1
+        (ensure-flonum 'DrawCircleGradient radius 3
+            (pragma "Color c1, c2")
+            (when (and (%init-c-color 'DrawCircleGradient 4 color1 "c1")
+                       (%init-c-color 'DrawCircleGradient 5 color2 "c2"))
+                (pragma "DrawCircleGradient((int)$1, (int)$2, (float)$3, c1, c2)"
+                        ($belong->elong centerX)
+                        ($belong->elong centerY)
+                        ($real->double radius))
+                NULL))))
 
 (defbuiltin (drawcirclev center radius color)
     (pragma "Vector2 center")
     (when (%init-c-vector2 'DrawCircleV 1 center "center")
-        (unless (flonum? radius)
-            (set! radius (mkflonumw 'DrawCircleV 2 radius)))
-        (when radius
+        (ensure-flonum 'DrawCircleV radius 2
             (pragma "Color c")
             (when (%init-c-color 'DrawCircleV 3 color "c")
                 (pragma "DrawCircleV(center, (float)$1, c)"
@@ -1506,29 +1357,20 @@
                 NULL))))
 
 (defbuiltin (drawcirclelines centerX centerY radius color)
-    (unless (elong? centerX)
-        (set! centerX (mkelongw 'DrawCircleLines 1 centerX)))
-    (when centerX
-        (unless (elong? centerY)
-            (set! centerY (mkelongw 'DrawCircleLines 2 centerY)))
-        (when centerY
-            (unless (flonum? radius)
-                (set! radius (mkflonumw 'DrawCircleLines 3 radius)))
-            (when radius
-                (pragma "Color c")
-                (when (%init-c-color 'DrawCircleLines 4 color "c")
-                    (pragma "DrawCircleLines((int)$1, (int)$2, (float)$3, c)"
-                            ($belong->elong centerX)
-                            ($belong->elong centerY)
-                            ($real->double radius))
-                    NULL)))))
+    (ensure-elongs 'DrawCircleLines (centerX centerY) 1
+        (ensure-flonum 'DrawCircleLines radius 3
+            (pragma "Color c")
+            (when (%init-c-color 'DrawCircleLines 4 color "c")
+                (pragma "DrawCircleLines((int)$1, (int)$2, (float)$3, c)"
+                        ($belong->elong centerX)
+                        ($belong->elong centerY)
+                        ($real->double radius))
+                NULL))))
 
 (defbuiltin (drawcirclelinesv center radius color)
     (pragma "Vector2 center")
     (when (%init-c-vector2 'DrawCircleLinesV 1 center "center")
-        (unless (flonum? radius)
-            (set! radius (mkflonumw 'DrawCircleLinesV 2 radius)))
-        (when radius
+        (ensure-flonum 'DrawCircleLinesV radius 2
             (pragma "Color c")
             (when (%init-c-color 'DrawCircleLinesV 3 color "c")
                 (pragma "DrawCircleLinesV(center, (float)$1, c)"
@@ -1536,126 +1378,69 @@
                 NULL))))
 
 (defbuiltin (drawellipse centerX centerY radiusH radiusV color)
-    (unless (elong? centerX)
-        (set! centerX (mkelongw 'DrawEllipse 1 centerX)))
-    (when centerX
-        (unless (elong? centerY)
-            (set! centerY (mkelongw 'DrawEllipse 2 centerY)))
-        (when centerY
-            (unless (flonum? radiusH)
-                (set! radiusH (mkflonumw 'DrawEllipse 3 radiusH)))
-            (when radiusH
-                (unless (flonum? radiusV)
-                    (set! radiusV (mkflonumw 'DrawEllipse 4 radiusV)))
-                (when radiusV
-                    (pragma "Color c")
-                    (when (%init-c-color 'DrawEllipse 5 color "c")
-                        (pragma "DrawEllipse((int)$1, (int)$2, (float)$3, (float)$4, c)"
-                                ($belong->elong centerX)
-                                ($belong->elong centerY)
-                                ($real->double radiusH)
-                                ($real->double radiusV))
-                        NULL))))))
+    (ensure-elongs 'DrawEllipse (centerX centerY) 1
+        (ensure-flonums 'DrawEllipse (radiusH radiusV) 3
+            (pragma "Color c")
+            (when (%init-c-color 'DrawEllipse 5 color "c")
+                (pragma "DrawEllipse((int)$1, (int)$2, (float)$3, (float)$4, c)"
+                        ($belong->elong centerX)
+                        ($belong->elong centerY)
+                        ($real->double radiusH)
+                        ($real->double radiusV))
+                NULL))))
 
 (defbuiltin (drawellipselines centerX centerY radiusH radiusV color)
-    (unless (elong? centerX)
-        (set! centerX (mkelongw 'DrawEllipseLines 1 centerX)))
-    (when centerX
-        (unless (elong? centerY)
-            (set! centerY (mkelongw 'DrawEllipseLines 2 centerY)))
-        (when centerY
-            (unless (flonum? radiusH)
-                (set! radiusH (mkflonumw 'DrawEllipseLines 3 radiusH)))
-            (when radiusH
-                (unless (flonum? radiusV)
-                    (set! radiusV (mkflonumw 'DrawEllipseLines 4 radiusV)))
-                (when radiusV
-                    (pragma "Color c")
-                    (when (%init-c-color 'DrawEllipseLines 5 color "c")
-                        (pragma "DrawEllipseLines((int)$1, (int)$2, (float)$3, (float)$4, c)"
-                                ($belong->elong centerX)
-                                ($belong->elong centerY)
-                                ($real->double radiusH)
-                                ($real->double radiusV))
-                        NULL))))))
+    (ensure-elongs 'DrawEllipseLines (centerX centerY) 1
+        (ensure-flonums 'DrawEllipseLines (radiusH radiusV) 3
+            (pragma "Color c")
+            (when (%init-c-color 'DrawEllipseLines 5 color "c")
+                (pragma "DrawEllipseLines((int)$1, (int)$2, (float)$3, (float)$4, c)"
+                        ($belong->elong centerX)
+                        ($belong->elong centerY)
+                        ($real->double radiusH)
+                        ($real->double radiusV))
+                NULL))))
 
 (defbuiltin (drawring center innerRadius outerRadius startAngle endAngle segments color)
     (pragma "Vector2 center")
     (when (%init-c-vector2 'DrawRing 1 center "center")
-        (unless (flonum? innerRadius)
-            (set! innerRadius (mkflonumw 'DrawRing 2 innerRadius)))
-        (when innerRadius
-            (unless (flonum? outerRadius)
-                (set! outerRadius (mkflonumw 'DrawRing 3 outerRadius)))
-            (when outerRadius
-                (unless (flonum? startAngle)
-                    (set! startAngle (mkflonumw 'DrawRing 4 startAngle)))
-                (when startAngle
-                    (unless (flonum? endAngle)
-                        (set! endAngle (mkflonumw 'DrawRing 5 endAngle)))
-                    (when endAngle
-                        (unless (elong? segments)
-                            (set! segments (mkelongw 'DrawRing 6 segments)))
-                        (when segments
-                            (pragma "Color c")
-                            (when (%init-c-color 'DrawRing 7 color "c")
-                                (pragma "DrawRing(center, (float)$1, (float)$2, (float)$3, (float)$4, (int)$5, c)"
-                                        ($real->double innerRadius)
-                                        ($real->double outerRadius)
-                                        ($real->double startAngle)
-                                        ($real->double endAngle)
-                                        ($belong->elong segments))
-                                NULL))))))))
+        (ensure-flonums 'DrawRing (innerRadius outerRadius startAngle endAngle) 2
+            (ensure-elong 'DrawRing segments 6
+                (pragma "Color c")
+                (when (%init-c-color 'DrawRing 7 color "c")
+                    (pragma "DrawRing(center, (float)$1, (float)$2, (float)$3, (float)$4, (int)$5, c)"
+                            ($real->double innerRadius)
+                            ($real->double outerRadius)
+                            ($real->double startAngle)
+                            ($real->double endAngle)
+                            ($belong->elong segments))
+                    NULL)))))
 
 (defbuiltin (drawringlines center innerRadius outerRadius startAngle endAngle segments color)
     (pragma "Vector2 center")
     (when (%init-c-vector2 'DrawRingLines 1 center "center")
-        (unless (flonum? innerRadius)
-            (set! innerRadius (mkflonumw 'DrawRingLines 2 innerRadius)))
-        (when innerRadius
-            (unless (flonum? outerRadius)
-                (set! outerRadius (mkflonumw 'DrawRingLines 3 outerRadius)))
-            (when outerRadius
-                (unless (flonum? startAngle)
-                    (set! startAngle (mkflonumw 'DrawRingLines 4 startAngle)))
-                (when startAngle
-                    (unless (flonum? endAngle)
-                        (set! endAngle (mkflonumw 'DrawRingLines 5 endAngle)))
-                    (when endAngle
-                        (unless (elong? segments)
-                            (set! segments (mkelongw 'DrawRingLines 6 segments)))
-                        (when segments
-                            (pragma "Color c")
-                            (when (%init-c-color 'DrawRingLines 7 color "c")
-                                (pragma "DrawRingLines(center, (float)$1, (float)$2, (float)$3, (float)$4, (int)$5, c)"
-                                        ($real->double innerRadius)
-                                        ($real->double outerRadius)
-                                        ($real->double startAngle)
-                                        ($real->double endAngle)
-                                        ($belong->elong segments))
-                                NULL))))))))
+        (ensure-flonums 'DrawRingLines (innerRadius outerRadius startAngle endAngle) 2
+            (ensure-elong 'DrawRingLines segments 6
+                (pragma "Color c")
+                (when (%init-c-color 'DrawRingLines 7 color "c")
+                    (pragma "DrawRingLines(center, (float)$1, (float)$2, (float)$3, (float)$4, (int)$5, c)"
+                            ($real->double innerRadius)
+                            ($real->double outerRadius)
+                            ($real->double startAngle)
+                            ($real->double endAngle)
+                            ($belong->elong segments))
+                    NULL)))))
 
 (defbuiltin (drawrectangle posX posY width height color)
-    (unless (elong? posX)
-        (set! posX (mkelongw 'DrawRectangle 1 posX)))
-    (when posX
-        (unless (elong? posY)
-            (set! posY (mkelongw 'DrawRectangle 2 posY)))
-        (when posY
-            (unless (elong? width)
-                (set! width (mkelongw 'DrawRectangle 3 width)))
-            (when width
-                (unless (elong? height)
-                    (set! height (mkelongw 'DrawRectangle 4 height)))
-                (when height
-                    (pragma "Color c")
-                    (when (%init-c-color 'DrawRectangle 5 color "c")
-                        (pragma "DrawRectangle((int)$1, (int)$2, (int)$3, (int)$4, c)"
-                                ($belong->elong posX)
-                                ($belong->elong posY)
-                                ($belong->elong width)
-                                ($belong->elong height))
-                        NULL))))))
+    (ensure-elongs 'DrawRectangle (posX posY width height) 1
+        (pragma "Color c")
+        (when (%init-c-color 'DrawRectangle 5 color "c")
+            (pragma "DrawRectangle((int)$1, (int)$2, (int)$3, (int)$4, c)"
+                    ($belong->elong posX)
+                    ($belong->elong posY)
+                    ($belong->elong width)
+                    ($belong->elong height))
+            NULL)))
 
 (defbuiltin (drawrectanglev position size color)
     (pragma "Vector2 pos, size;
@@ -1679,9 +1464,7 @@
              Vector2 origin")
     (when (and (%init-c-rect 'DrawRectanglePro 1 rec "r")
                (%init-c-vector2 'DrawRectanglePro 2 origin "origin"))
-        (unless (flonum? rotation)
-            (set! rotation (mkflonumw 'DrawRectanglePro 3 rotation)))
-        (when rotation
+        (ensure-flonum 'DrawRectanglePro rotation 3
             (pragma "Color c")
             (when (%init-c-color 'DrawRectanglePro 4 color "c")
                 (pragma "DrawRectanglePro(r, origin, (float)$1, c)"
@@ -1689,50 +1472,28 @@
                 NULL))))
 
 (defbuiltin (drawrectanglegradientv posX posY width height color1 color2)
-    (unless (elong? posX)
-        (set! posX (mkelongw 'DrawRectangleGradientV 1 posX)))
-    (when posX
-        (unless (elong? posY)
-            (set! posY (mkelongw 'DrawRectangleGradientV 2 posY)))
-        (when posY
-            (unless (elong? width)
-                (set! width (mkelongw 'DrawRectangleGradientV 3 width)))
-            (when width
-                (unless (elong? height)
-                    (set! height (mkelongw 'DrawRectangleGradientV 4 height)))
-                (when height
-                    (pragma "Color c1, c2")
-                    (when (and (%init-c-color 'DrawRectangleGradientV 5 color1 "c1")
-                               (%init-c-color 'DrawRectangleGradientV 6 color2 "c2"))
-                        (pragma "DrawRectangleGradientV((int)$1, (int)$2, (int)$3, (int)$4, c1, c2)"
-                                ($belong->elong posX)
-                                ($belong->elong posY)
-                                ($belong->elong width)
-                                ($belong->elong height))
-                        NULL))))))
+    (ensure-elongs 'DrawRectangleGradientV (posX posY width height) 1
+        (pragma "Color c1, c2")
+        (when (and (%init-c-color 'DrawRectangleGradientV 5 color1 "c1")
+                   (%init-c-color 'DrawRectangleGradientV 6 color2 "c2"))
+            (pragma "DrawRectangleGradientV((int)$1, (int)$2, (int)$3, (int)$4, c1, c2)"
+                    ($belong->elong posX)
+                    ($belong->elong posY)
+                    ($belong->elong width)
+                    ($belong->elong height))
+            NULL)))
 
 (defbuiltin (drawrectanglegradienth posX posY width height color1 color2)
-    (unless (elong? posX)
-        (set! posX (mkelongw 'DrawRectangleGradientH 1 posX)))
-    (when posX
-        (unless (elong? posY)
-            (set! posY (mkelongw 'DrawRectangleGradientH 2 posY)))
-        (when posY
-            (unless (elong? width)
-                (set! width (mkelongw 'DrawRectangleGradientH 3 width)))
-            (when width
-                (unless (elong? height)
-                    (set! height (mkelongw 'DrawRectangleGradientH 4 height)))
-                (when height
-                    (pragma "Color c1, c2")
-                    (when (and (%init-c-color 'DrawRectangleGradientH 5 color1 "c1")
-                               (%init-c-color 'DrawRectangleGradientH 6 color2 "c2"))
-                        (pragma "DrawRectangleGradientH((int)$1, (int)$2, (int)$3, (int)$4, c1, c2)"
-                                ($belong->elong posX)
-                                ($belong->elong posY)
-                                ($belong->elong width)
-                                ($belong->elong height))
-                        NULL))))))
+    (ensure-elongs 'DrawRectangleGradientH (posX posY width height) 1
+        (pragma "Color c1, c2")
+        (when (and (%init-c-color 'DrawRectangleGradientH 5 color1 "c1")
+                   (%init-c-color 'DrawRectangleGradientH 6 color2 "c2"))
+            (pragma "DrawRectangleGradientH((int)$1, (int)$2, (int)$3, (int)$4, c1, c2)"
+                    ($belong->elong posX)
+                    ($belong->elong posY)
+                    ($belong->elong width)
+                    ($belong->elong height))
+            NULL)))
 
 (defbuiltin (drawrectanglegradientex rec col1 col2 col3 col4)
     (pragma "Rectangle r;
@@ -1746,33 +1507,20 @@
         NULL))
 
 (defbuiltin (drawrectanglelines posX posY width height color)
-    (unless (elong? posX)
-        (set! posX (mkelongw 'DrawRectangleLines 1 posX)))
-    (when posX
-        (unless (elong? posY)
-            (set! posY (mkelongw 'DrawRectangleLines 2 posY)))
-        (when posY
-            (unless (elong? width)
-                (set! width (mkelongw 'DrawRectangleLines 3 width)))
-            (when width
-                (unless (elong? height)
-                    (set! height (mkelongw 'DrawRectangleLines 4 height)))
-                (when height
-                    (pragma "Color c")
-                    (when (%init-c-color 'DrawRectangleLines 5 color "c")
-                        (pragma "DrawRectangleLines((int)$1, (int)$2, (int)$3, (int)$4, c)"
-                                ($belong->elong posX)
-                                ($belong->elong posY)
-                                ($belong->elong width)
-                                ($belong->elong height))
-                        NULL))))))
+    (ensure-elongs 'DrawRectangleLines (posX posY width height) 1
+        (pragma "Color c")
+        (when (%init-c-color 'DrawRectangleLines 5 color "c")
+            (pragma "DrawRectangleLines((int)$1, (int)$2, (int)$3, (int)$4, c)"
+                    ($belong->elong posX)
+                    ($belong->elong posY)
+                    ($belong->elong width)
+                    ($belong->elong height))
+            NULL)))
 
 (defbuiltin (drawrectanglelinesex rec lineThick color)
     (pragma "Rectangle r")
     (when (%init-c-rect 'DrawRectangleLinesEx 1 rec "r")
-        (unless (flonum? lineThick)
-            (set! lineThick (mkflonumw 'DrawRectangleLinesEx 2 lineThick)))
-        (when lineThick
+        (ensure-flonum 'DrawRectangleLinesEx lineThick 2
             (pragma "Color c")
             (when (%init-c-color 'DrawRectangleLinesEx 3 color "c")
                 (pragma "DrawRectangleLinesEx(r, (float)$1, c)"
@@ -1782,12 +1530,8 @@
 (defbuiltin (drawrectanglerounded rec roundness segments color)
     (pragma "Rectangle r")
     (when (%init-c-rect 'DrawRectangleRounded 1 rec "r")
-        (unless (flonum? roundness)
-            (set! roundness (mkflonumw 'DrawRectangleRounded 2 roundness)))
-        (when roundness
-            (unless (elong? segments)
-                (set! segments (mkelongw 'DrawRectangleRounded 3 segments)))
-            (when segments
+        (ensure-flonum 'DrawRectangleRounded roundness 2
+            (ensure-elong 'DrawRectangleRounded segments 3
                 (pragma "Color c")
                 (when (%init-c-color 'DrawRectangleRounded 4 color "c")
                     (pragma "DrawRectangleRounded(r, (float)$1, (int)$2, c)"
@@ -1798,15 +1542,9 @@
 (defbuiltin (drawrectangleroundedlines rec roundness segments lineThick color)
     (pragma "Rectangle r")
     (when (%init-c-rect 'DrawRectangleRoundedLines 1 rec "r")
-        (unless (flonum? roundness)
-            (set! roundness (mkflonumw 'DrawRectangleRoundedLines 2 roundness)))
-        (when roundness
-            (unless (elong? segments)
-                (set! segments (mkelongw 'DrawRectangleRoundedLines 3 segments)))
-            (when segments
-                (unless (flonum? lineThick)
-                    (set! lineThick (mkflonumw 'DrawRectangleRoundedLines 4 lineThick)))
-                (when lineThick
+        (ensure-flonum 'DrawRectangleRoundedLines roundness 2
+            (ensure-elong 'DrawRectangleRoundedLines segments 3
+                (ensure-flonum 'DrawRectangleRoundedLines lineThick 4
                     (pragma "Color c")
                     (when (%init-c-color 'DrawRectangleRoundedLines 5 color "c")
                         (pragma "DrawRectangleRoundedLines(r, (float)$1, (int)$2, (float)$3, c)"
@@ -1836,9 +1574,7 @@
         NULL))
 
 (defbuiltin (drawtrianglefan points color)
-    (%with-c-vector2-points
-        'DrawTriangleFan
-        1
+    (%with-c-vector2-points 'DrawTriangleFan 1
         (when (pragma::bool "points")
             (pragma "Color c")
             (when (%init-c-color 'DrawTriangleFan 2 color "c")
@@ -1846,9 +1582,7 @@
                 NULL))))
 
 (defbuiltin (drawtrianglestrip points color)
-    (%with-c-vector2-points
-        'DrawTriangleStrip
-        1
+    (%with-c-vector2-points 'DrawTriangleStrip 1
         (when (pragma::bool "points")
             (pragma "Color c")
             (when (%init-c-color 'DrawTriangleStrip 2 color "c")
@@ -1858,122 +1592,77 @@
 (defbuiltin (drawpoly center sides radius rotation color)
     (pragma "Vector2 center")
     (when (%init-c-vector2 'DrawPoly 1 center "center")
-        (unless (elong? sides)
-            (set! sides (mkelongw 'DrawPoly 2 sides)))
-        (when sides
-            (unless (flonum? radius)
-                (set! radius (mkflonumw 'DrawPoly 3 radius)))
-            (when radius
-                (unless (flonum? rotation)
-                    (set! rotation (mkflonumw 'DrawPoly 4 rotation)))
-                (when rotation
-                    (pragma "Color c")
-                    (when (%init-c-color 'DrawPoly 5 color "c")
-                        (pragma "DrawPoly(center, (int)$1, (float)$2, (float)$3, c)"
-                                ($belong->elong sides)
-                                ($real->double radius)
-                                ($real->double rotation))
-                        NULL))))))
+        (ensure-elong 'DrawPoly sides 2
+            (ensure-flonums 'DrawPoly (radius rotation) 3
+                (pragma "Color c")
+                (when (%init-c-color 'DrawPoly 5 color "c")
+                    (pragma "DrawPoly(center, (int)$1, (float)$2, (float)$3, c)"
+                            ($belong->elong sides)
+                            ($real->double radius)
+                            ($real->double rotation))
+                    NULL)))))
 
 (defbuiltin (drawpolylines center sides radius rotation color)
     (pragma "Vector2 center")
     (when (%init-c-vector2 'DrawPolyLines 1 center "center")
-        (unless (elong? sides)
-            (set! sides (mkelongw 'DrawPolyLines 2 sides)))
-        (when sides
-            (unless (flonum? radius)
-                (set! radius (mkflonumw 'DrawPolyLines 3 radius)))
-            (when radius
-                (unless (flonum? rotation)
-                    (set! rotation (mkflonumw 'DrawPolyLines 4 rotation)))
-                (when rotation
-                    (pragma "Color c")
-                    (when (%init-c-color 'DrawPolyLines 5 color "c")
-                        (pragma "DrawPolyLines(center, (int)$1, (float)$2, (float)$3, c)"
-                                ($belong->elong sides)
-                                ($real->double radius)
-                                ($real->double rotation))
-                        NULL))))))
+        (ensure-elong 'DrawPolyLines sides 2
+            (ensure-flonums 'DrawPolyLines (radius rotation) 3
+                (pragma "Color c")
+                (when (%init-c-color 'DrawPolyLines 5 color "c")
+                    (pragma "DrawPolyLines(center, (int)$1, (float)$2, (float)$3, c)"
+                            ($belong->elong sides)
+                            ($real->double radius)
+                            ($real->double rotation))
+                    NULL)))))
 
 (defbuiltin (drawpolylinesex center sides radius rotation lineThick color)
     (pragma "Vector2 center")
     (when (%init-c-vector2 'DrawPolyLinesEx 1 center "center")
-        (unless (elong? sides)
-            (set! sides (mkelongw 'DrawPolyLinesEx 2 sides)))
-        (when sides
-            (unless (flonum? radius)
-                (set! radius (mkflonumw 'DrawPolyLinesEx 3 radius)))
-            (when radius
-                (unless (flonum? rotation)
-                    (set! rotation (mkflonumw 'DrawPolyLinesEx 4 rotation)))
-                (when rotation
-                    (unless (flonum? lineThick)
-                        (set! lineThick (mkflonumw 'DrawPolyLinesEx 5 lineThick)))
-                    (when lineThick
-                        (pragma "Color c")
-                        (when (%init-c-color 'DrawPolyLinesEx 6 color "c")
-                            (pragma "DrawPolyLinesEx(center, (int)$1, (float)$2, (float)$3, (float)$4, c)"
-                                    ($belong->elong sides)
-                                    ($real->double radius)
-                                    ($real->double rotation)
-                                    ($real->double lineThick))
-                            NULL)))))))
+        (ensure-elong 'DrawPolyLinesEx sides 2
+            (ensure-flonums 'DrawPolyLinesEx (radius rotation lineThick) 3
+                (pragma "Color c")
+                (when (%init-c-color 'DrawPolyLinesEx 6 color "c")
+                    (pragma "DrawPolyLinesEx(center, (int)$1, (float)$2, (float)$3, (float)$4, c)"
+                            ($belong->elong sides)
+                            ($real->double radius)
+                            ($real->double rotation)
+                            ($real->double lineThick))
+                    NULL)))))
 
 ; Image loading functions
 
 (defresource %Image "raylib Image" intern)
 
 (defbuiltin (loadimage fileName)
-    (set! fileName (mkpathw 'LoadImage 1 fileName))
-    (when fileName
+    (ensure-path 'LoadImage fileName 1
         (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
         (pragma "*im = LoadImage($1)" ($bstring->string fileName))
         (make-resource %Image (pragma::void* "im"))))
 
 (defbuiltin (loadimageraw fileName width height format headerSize)
-    (set! fileName (mkpathw 'LoadImageRaw 1 fileName))
-    (when fileName
-        (unless (elong? width)
-            (set! width (mkelongw 'LoadImageRaw 2 width)))
-        (when width
-            (unless (elong? height)
-                (set! height (mkelongw 'LoadImageRaw 3 height)))
-            (when height
-                (unless (elong? format)
-                    (set! format (mkelongw 'LoadImageRaw 4 format)))
-                (when format
-                    (unless (elong? headerSize)
-                        (set! headerSize (mkelongw 'LoadImageRaw 5 headerSize)))
-                    (when headerSize
-                        (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
-                        (pragma "*im = LoadImageRaw($1, (int)$2, (int)$3, (int)$4, (int)$5)"
-                                ($bstring->string fileName)
-                                ($belong->elong width)
-                                ($belong->elong height)
-                                ($belong->elong format)
-                                ($belong->elong headerSize))
-                        (make-resource %Image (pragma::void* "im"))))))))
+    (ensure-path 'LoadImageRaw fileName 1
+        (ensure-elongs 'LoadImageRaw (width height format headerSize) 2
+            (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
+            (pragma "*im = LoadImageRaw($1, (int)$2, (int)$3, (int)$4, (int)$5)"
+                    ($bstring->string fileName)
+                    ($belong->elong width)
+                    ($belong->elong height)
+                    ($belong->elong format)
+                    ($belong->elong headerSize))
+            (make-resource %Image (pragma::void* "im")))))
 
 (defbuiltin (loadimagesvg fileNameOrString width height)
-    (unless (string? fileNameOrString)
-        (set! fileNameOrString (mkstrw 'LoadImageSvg 1 fileNameOrString)))
-    (when fileNameOrString
-        (unless (elong? width)
-            (set! width (mkelongw 'LoadImageSvg 2 width)))
-        (when width
-            (unless (elong? height)
-                (set! height (mkelongw 'LoadImageSvg 3 height)))
-            (when height
-                (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
-                (pragma "*im = LoadImageSvg($1, (int)$2, (int)$3)"
-                        ($bstring->string fileNameOrString)
-                        ($belong->elong width)
-                        ($belong->elong height))
-                (make-resource %Image (pragma::void* "im"))))))
+    (ensure-str 'LoadImageSvg fileNameOrString 1
+        (ensure-elongs 'LoadImageSvg (width height) 2
+            (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
+            (pragma "*im = LoadImageSvg($1, (int)$2, (int)$3)"
+                    ($bstring->string fileNameOrString)
+                    ($belong->elong width)
+                    ($belong->elong height))
+            (make-resource %Image (pragma::void* "im")))))
 
 (defbuiltin (loadimageanim fileName (ref . frames))
-    (set! fileName (mkpathw 'LoadImageAnim 1 fileName))
-    (when fileName
+    (ensure-path 'LoadImageAnim fileName 1
         (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
         (pragma "int frames")
         (pragma "*im = LoadImageAnim($1, &frames)" ($bstring->string fileName))
@@ -1981,17 +1670,12 @@
         (make-resource %Image (pragma::void* "im"))))
 
 (defbuiltin (loadimagefrommemory fileType fileData)
-    (unless (string? fileType)
-        (set! fileType (mkstrw 'LoadImageFromMemory 1 fileType)))
-    (when fileType
-        (unless (string? fileData)
-            (set! fileData (mkstrw 'LoadImageFromMemory 2 fileData)))
-        (when fileData
-            (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
-            (pragma "*im = LoadImageFromMemory($1, BSTRING_TO_STRING($2), STRING_LENGTH($2))"
-                    ($bstring->string fileType)
-                    fileData)
-            (make-resource %Image (pragma::void* "im")))))
+    (ensure-strs 'LoadImageFromMemory (fileType fileData) 1
+        (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
+        (pragma "*im = LoadImageFromMemory($1, BSTRING_TO_STRING($2), STRING_LENGTH($2))"
+                ($bstring->string fileType)
+                fileData)
+        (make-resource %Image (pragma::void* "im"))))
 
 (defbuiltin (loadimagefromtexture texture)
     (pragma "Texture2D t")
@@ -2006,259 +1690,165 @@
     (make-resource %Image (pragma::void* "im")))
 
 (defbuiltin (isimageready image)
-    (%ensure-image
-        'IsImageReady
+    (%ensure-image 'IsImageReady
         (pragma::bool "IsImageReady(*im)")))
 
 (defbuiltin (unloadimage image)
-    (%ensure-image
-        'UnloadImage
-        (begin
-            (pragma "UnloadImage(*im)")
-            (%Image-intern-set! image #f)
-            (%Image-description-set! image #f)
-            NULL)))
+    (%ensure-image 'UnloadImage
+        (pragma "UnloadImage(*im)")
+        (%Image-intern-set! image #f)
+        (%Image-description-set! image #f)
+        NULL))
 
 (defbuiltin (exportimage image fileName)
-    (%ensure-image
-        'ExportImage
-        (begin
-            (set! fileName (mkpathw 'ExportImage 2 fileName))
-            (when fileName
-                (pragma::bool "ExportImage(*im, $1)"
-                              ($bstring->string fileName))))))
+    (%ensure-image 'ExportImage
+        (ensure-path 'ExportImage fileName 2
+            (pragma::bool "ExportImage(*im, $1)"
+                          ($bstring->string fileName)))))
 
 (defbuiltin (exportimagetomemory image fileType)
-    (%ensure-image
-        'ExportImageToMemory
-        (begin
-            (unless (string? fileType)
-                (set! fileType (mkstrw 'ExportImageToMemory 2 fileType)))
-            (when fileType
-                (pragma "unsigned char *fileData;
-                         int dataSize;
-                         obj_t ret = BNIL")
-                (pragma "fileData = ExportImageToMemory(*im, $1, &dataSize)"
-                        ($bstring->string fileType))
-                (pragma "if (fileData) {
-                            ret = string_to_bstring_len(fileData, dataSize);
-                            RL_FREE(fileData);
-                         }")
-                (pragma::obj "ret")))))
+    (%ensure-image 'ExportImageToMemory
+        (ensure-str 'ExportImageToMemory fileType 2
+            (pragma "unsigned char *fileData;
+                     int dataSize;
+                     obj_t ret = BNIL")
+            (pragma "fileData = ExportImageToMemory(*im, $1, &dataSize)"
+                    ($bstring->string fileType))
+            (pragma "if (fileData) {
+                        ret = string_to_bstring_len(fileData, dataSize);
+                        RL_FREE(fileData);
+                     }")
+            (pragma::obj "ret"))))
 
 (defbuiltin (exportimageascode image fileName)
-    (%ensure-image
-        'ExportImageAsCode
-        (begin
-            (set! fileName (mkpathw 'ExportImageAsCode 2 fileName))
-            (when fileName
-                (pragma::bool "ExportImageAsCode(*im, $1)"
-                              ($bstring->string fileName))))))
+    (%ensure-image 'ExportImageAsCode
+        (ensure-path 'ExportImageAsCode fileName 2
+            (pragma::bool "ExportImageAsCode(*im, $1)"
+                          ($bstring->string fileName)))))
 
 ; Image generation functions
 
 (defbuiltin (genimagecolor width height color)
-    (unless (elong? width)
-        (set! width (mkelongw 'GenImageColor 1 width)))
-    (when width
-        (unless (elong? height)
-            (set! height (mkelongw 'GenImageColor 2 height)))
-        (when height
-            (pragma "Color c")
-            (when (%init-c-color 'GenImageColor 3 color "c")
-                (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
-                (pragma "*im = GenImageColor((int)$1, (int)$2, c)"
-                        ($belong->elong width)
-                        ($belong->elong height))
-                (make-resource %Image (pragma::void* "im"))))))
+    (ensure-elongs 'GenImageColor (width height) 1
+        (pragma "Color c")
+        (when (%init-c-color 'GenImageColor 3 color "c")
+            (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
+            (pragma "*im = GenImageColor((int)$1, (int)$2, c)"
+                    ($belong->elong width)
+                    ($belong->elong height))
+            (make-resource %Image (pragma::void* "im")))))
 
 (defbuiltin (genimagegradientlinear width height direction start end)
-    (unless (elong? width)
-        (set! width (mkelongw 'GenImageGradientLinear 1 width)))
-    (when width
-        (unless (elong? height)
-            (set! height (mkelongw 'GenImageGradientLinear 2 height)))
-        (when height
-            (unless (elong? direction)
-                (set! direction (mkelongw 'GenImageGradientLinear 3 direction)))
-            (when direction
-                (pragma "Color start, end")
-                (when (and (%init-c-color 'GenImageGradientLinear 4 start "start")
-                           (%init-c-color 'GenImageGradientLinear 5 end "end"))
-                    (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
-                    (pragma "*im = GenImageGradientLinear((int)$1, (int)$2, (int)$3, start, end)"
-                            ($belong->elong width)
-                            ($belong->elong height)
-                            ($belong->elong direction))
-                    (make-resource %Image (pragma::void* "im")))))))
+    (ensure-elongs 'GenImageGradientLinear (width height direction) 1
+        (pragma "Color start, end")
+        (when (and (%init-c-color 'GenImageGradientLinear 4 start "start")
+                   (%init-c-color 'GenImageGradientLinear 5 end "end"))
+            (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
+            (pragma "*im = GenImageGradientLinear((int)$1, (int)$2, (int)$3, start, end)"
+                    ($belong->elong width)
+                    ($belong->elong height)
+                    ($belong->elong direction))
+            (make-resource %Image (pragma::void* "im")))))
 
 (defbuiltin (genimagegradientradial width height density inner outer)
-    (unless (elong? width)
-        (set! width (mkelongw 'GenImageGradientRadial 1 width)))
-    (when width
-        (unless (elong? height)
-            (set! height (mkelongw 'GenImageGradientRadial 2 height)))
-        (when height
-            (unless (flonum? density)
-                (set! density (mkflonumw 'GenImageGradientRadial 3 density)))
-            (when density
-                (pragma "Color inner, outer")
-                (when (and (%init-c-color 'GenImageGradientRadial 4 inner "inner")
-                           (%init-c-color 'GenImageGradientRadial 5 outer "outer"))
-                    (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
-                    (pragma "*im = GenImageGradientRadial((int)$1, (int)$2, (float)$3, inner, outer)"
-                            ($belong->elong width)
-                            ($belong->elong height)
-                            ($real->double density))
-                    (make-resource %Image (pragma::void* "im")))))))
+    (ensure-elongs 'GenImageGradientRadial (width height) 1
+        (ensure-flonum 'GenImageGradientRadial density 3
+            (pragma "Color inner, outer")
+            (when (and (%init-c-color 'GenImageGradientRadial 4 inner "inner")
+                       (%init-c-color 'GenImageGradientRadial 5 outer "outer"))
+                (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
+                (pragma "*im = GenImageGradientRadial((int)$1, (int)$2, (float)$3, inner, outer)"
+                        ($belong->elong width)
+                        ($belong->elong height)
+                        ($real->double density))
+                (make-resource %Image (pragma::void* "im"))))))
 
 (defbuiltin (genimagegradientsquare width height density inner outer)
-    (unless (elong? width)
-        (set! width (mkelongw 'GenImageGradientSquare 1 width)))
-    (when width
-        (unless (elong? height)
-            (set! height (mkelongw 'GenImageGradientSquare 2 height)))
-        (when height
-            (unless (flonum? density)
-                (set! density (mkflonumw 'GenImageGradientSquare 3 density)))
-            (when density
-                (pragma "Color inner, outer")
-                (when (and (%init-c-color 'GenImageGradientSquare 4 inner "inner")
-                           (%init-c-color 'GenImageGradientSquare 5 outer "outer"))
-                    (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
-                    (pragma "*im = GenImageGradientSquare((int)$1, (int)$2, (float)$3, inner, outer)"
-                            ($belong->elong width)
-                            ($belong->elong height)
-                            ($real->double density))
-                    (make-resource %Image (pragma::void* "im")))))))
+    (ensure-elongs 'GenImageGradientSquare (width height) 1
+        (ensure-flonum 'GenImageGradientSquare density 3
+            (pragma "Color inner, outer")
+            (when (and (%init-c-color 'GenImageGradientSquare 4 inner "inner")
+                       (%init-c-color 'GenImageGradientSquare 5 outer "outer"))
+                (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
+                (pragma "*im = GenImageGradientSquare((int)$1, (int)$2, (float)$3, inner, outer)"
+                        ($belong->elong width)
+                        ($belong->elong height)
+                        ($real->double density))
+                (make-resource %Image (pragma::void* "im"))))))
 
 (defbuiltin (genimagechecked width height checksX checksY col1 col2)
-    (unless (elong? width)
-        (set! width (mkelongw 'GenImageChecked 1 width)))
-    (when width
-        (unless (elong? height)
-            (set! height (mkelongw 'GenImageChecked 2 height)))
-        (when height
-            (unless (elong? checksX)
-                (set! checksX (mkelongw 'GenImageChecked 3 checksX)))
-            (when checksX
-                (unless (elong? checksY)
-                    (set! checksY (mkelongw 'GenImageChecked 4 checksY)))
-                (when checksY
-                    (pragma "Color col1, col2")
-                    (when (and (%init-c-color 'GenImageChecked 5 col1 "col1")
-                               (%init-c-color 'GenImageChecked 6 col2 "col2"))
-                        (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
-                        (pragma "*im = GenImageChecked((int)$1, (int)$2, (int)$3, (int)$4, col1, col2)"
-                                ($belong->elong width)
-                                ($belong->elong height)
-                                ($belong->elong checksX)
-                                ($belong->elong checksY))
-                        (make-resource %Image (pragma::void* "im"))))))))
+    (ensure-elongs 'GenImageChecked (width height checksX checksY) 1
+        (pragma "Color col1, col2")
+        (when (and (%init-c-color 'GenImageChecked 5 col1 "col1")
+                   (%init-c-color 'GenImageChecked 6 col2 "col2"))
+            (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
+            (pragma "*im = GenImageChecked((int)$1, (int)$2, (int)$3, (int)$4, col1, col2)"
+                    ($belong->elong width)
+                    ($belong->elong height)
+                    ($belong->elong checksX)
+                    ($belong->elong checksY))
+            (make-resource %Image (pragma::void* "im")))))
 
 (defbuiltin (genimagewhitenoise width height factor)
-    (unless (elong? width)
-        (set! width (mkelongw 'GenImageWhiteNoise 1 width)))
-    (when width
-        (unless (elong? height)
-            (set! height (mkelongw 'GenImageWhiteNoise 2 height)))
-        (when height
-            (unless (flonum? factor)
-                (set! factor (mkflonumw 'GenImageWhiteNoise 3 factor)))
-            (when factor
-                (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
-                (pragma "*im = GenImageWhiteNoise((int)$1, (int)$2, (float)$3)"
-                        ($belong->elong width)
-                        ($belong->elong height)
-                        ($real->double factor))
-                (make-resource %Image (pragma::void* "im"))))))
+    (ensure-elongs 'GenImageWhiteNoise (width height) 1
+        (ensure-flonum 'GenImageWhiteNoise factor 3
+            (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
+            (pragma "*im = GenImageWhiteNoise((int)$1, (int)$2, (float)$3)"
+                    ($belong->elong width)
+                    ($belong->elong height)
+                    ($real->double factor))
+            (make-resource %Image (pragma::void* "im")))))
 
 (defbuiltin (genimageperlinnoise width height offsetX offsetY scale)
-    (unless (elong? width)
-        (set! width (mkelongw 'GenImagePerlinNoise 1 width)))
-    (when width
-        (unless (elong? height)
-            (set! height (mkelongw 'GenImagePerlinNoise 2 height)))
-        (when height
-            (unless (elong? offsetX)
-                (set! offsetX (mkelongw 'GenImagePerlinNoise 3 offsetX)))
-            (when offsetX
-                (unless (elong? offsetY)
-                    (set! offsetY (mkelongw 'GenImagePerlinNoise 4 offsetY)))
-                (when offsetY
-                    (unless (flonum? scale)
-                        (set! scale (mkflonumw 'GenImagePerlinNoise 5 scale)))
-                    (when scale
-                        (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
-                        (pragma "*im = GenImagePerlinNoise((int)$1, (int)$2, (int)$3, (int)$4, (float)$5)"
-                                ($belong->elong width)
-                                ($belong->elong height)
-                                ($belong->elong offsetX)
-                                ($belong->elong offsetY)
-                                ($real->double scale))
-                        (make-resource %Image (pragma::void* "im"))))))))
+    (ensure-elongs 'GenImagePerlinNoise (width height offsetX offsetY) 1
+        (ensure-flonum 'GenImagePerlinNoise scale 5
+            (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
+            (pragma "*im = GenImagePerlinNoise((int)$1, (int)$2, (int)$3, (int)$4, (float)$5)"
+                    ($belong->elong width)
+                    ($belong->elong height)
+                    ($belong->elong offsetX)
+                    ($belong->elong offsetY)
+                    ($real->double scale))
+            (make-resource %Image (pragma::void* "im")))))
 
 (defbuiltin (genimagecellular width height tileSize)
-    (unless (elong? width)
-        (set! width (mkelongw 'GenImageCellular 1 width)))
-    (when width
-        (unless (elong? height)
-            (set! height (mkelongw 'GenImageCellular 2 height)))
-        (when height
-            (unless (elong? tileSize)
-                (set! tileSize (mkelongw 'GenImageCellular 3 tileSize)))
-            (when tileSize
-                (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
-                (pragma "*im = GenImageCellular((int)$1, (int)$2, (int)$3)"
-                        ($belong->elong width)
-                        ($belong->elong height)
-                        ($belong->elong tileSize))
-                (make-resource %Image (pragma::void* "im"))))))
+    (ensure-elongs 'GenImageCellular (width height tileSize) 1
+        (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
+        (pragma "*im = GenImageCellular((int)$1, (int)$2, (int)$3)"
+                ($belong->elong width)
+                ($belong->elong height)
+                ($belong->elong tileSize))
+        (make-resource %Image (pragma::void* "im"))))
 
 (defbuiltin (genimagetext width height text)
-    (unless (elong? width)
-        (set! width (mkelongw 'GenImageText 1 width)))
-    (when width
-        (unless (elong? height)
-            (set! height (mkelongw 'GenImageText 2 height)))
-        (when height
-            (unless (string? text)
-                (set! text (mkstrw 'GenImageText 3 text)))
-            (when text
-                (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
-                (pragma "*im = GenImageText((int)$1, (int)$2, $3)"
-                        ($belong->elong width)
-                        ($belong->elong height)
-                        ($bstring->string text))
-                (make-resource %Image (pragma::void* "im"))))))
+    (ensure-elongs 'GenImageText (width height) 1
+        (ensure-str 'GenImageText text 3
+            (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
+            (pragma "*im = GenImageText((int)$1, (int)$2, $3)"
+                    ($belong->elong width)
+                    ($belong->elong height)
+                    ($bstring->string text))
+            (make-resource %Image (pragma::void* "im")))))
 
 ; Image manipulation functions
 
 (defbuiltin (imagecopy image)
-    (%ensure-image
-        'ImageCopy
-        (begin
-            (pragma "Image *copy = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
-            (pragma "*copy = ImageCopy(*im)")
-            (make-resource %Image (pragma::void* "copy")))))
+    (%ensure-image 'ImageCopy
+        (pragma "Image *copy = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
+        (pragma "*copy = ImageCopy(*im)")
+        (make-resource %Image (pragma::void* "copy"))))
 
 (defbuiltin (imagefromimage image rec)
-    (%ensure-image
-        'ImageFromImage
-        (begin
-            (pragma "Rectangle r")
-            (when (%init-c-rect 'ImageFromImage 2 rec "r")
-                (pragma "Image *newim = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
-                (pragma "*newim = ImageFromImage(*im, r)")
-                (make-resource %Image (pragma::void* "newim"))))))
+    (%ensure-image 'ImageFromImage
+        (pragma "Rectangle r")
+        (when (%init-c-rect 'ImageFromImage 2 rec "r")
+            (pragma "Image *newim = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
+            (pragma "*newim = ImageFromImage(*im, r)")
+            (make-resource %Image (pragma::void* "newim")))))
 
 (defbuiltin (imagetext text fontSize color)
-    (unless (string? text)
-        (set! text (mkstrw 'ImageText 1 text)))
-    (when text
-        (unless (elong? fontSize)
-            (set! fontSize (mkelongw 'ImageText 2 fontSize)))
-        (when fontSize
+    (ensure-str 'ImageText text 1
+        (ensure-elong 'ImageText fontSize 2
             (pragma "Color c")
             (when (%init-c-color 'ImageText 3 color "c")
                 (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
@@ -2268,77 +1858,57 @@
                 (make-resource %Image (pragma::void* "im"))))))
 
 (defbuiltin (imagetextex font text fontSize spacing tint)
-    (%ensure-font
-        'ImageTextEx
-        (unless (string? text)
-            (set! text (mkstrw 'ImageTextEx 2 text)))
-        (when text
-            (unless (flonum? fontSize)
-                (set! fontSize (mkflonumw 'ImageTextEx 3 fontSize)))
-            (when fontSize
-                (unless (flonum? spacing)
-                    (set! spacing (mkflonumw 'ImageTextEx 4 spacing)))
-                (when spacing
-                    (pragma "Color tint")
-                    (when (%init-c-color 'ImageTextEx 5 tint "tint")
-                        (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
-                        (pragma "*im = ImageTextEx(*font, $1, (float)$2, (float)$3, tint)"
-                                ($bstring->string text)
-                                ($real->double fontSize)
-                                ($real->double spacing))
-                        (make-resource %Image (pragma::void* "im"))))))))
+    (%ensure-font 'ImageTextEx
+        (ensure-str 'ImageTextEx text 2
+            (ensure-flonums 'ImageTextEx (fontSize spacing) 3
+                (pragma "Color tint")
+                (when (%init-c-color 'ImageTextEx 5 tint "tint")
+                    (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image))")
+                    (pragma "*im = ImageTextEx(*font, $1, (float)$2, (float)$3, tint)"
+                            ($bstring->string text)
+                            ($real->double fontSize)
+                            ($real->double spacing))
+                    (make-resource %Image (pragma::void* "im")))))))
 
 (defbuiltin (imageformat image newFormat)
-    (%ensure-image
-        'ImageFormat
-        (unless (elong? newFormat)
-            (set! newFormat (mkelongw 'ImageFormat 2 newFormat)))
-        (when newFormat
+    (%ensure-image 'ImageFormat
+        (ensure-elong 'ImageFormat newFormat 2
             (pragma "ImageFormat(im, (int)$1)"
                     ($belong->elong newFormat))
             NULL)))
 
 (defbuiltin (imagetopot image fill)
-    (%ensure-image
-        'ImageToPOT
+    (%ensure-image 'ImageToPOT
         (pragma "Color fill")
         (when (%init-c-color 'ImageToPOT 2 fill "fill")
             (pragma "ImageToPOT(im, fill)")
             NULL)))
 
 (defbuiltin (imagecrop image crop)
-    (%ensure-image
-        'ImageCrop
+    (%ensure-image 'ImageCrop
         (pragma "Rectangle crop")
         (when (%init-c-rect 'ImageCrop 2 crop "crop")
             (pragma "ImageCrop(im, crop)")
             NULL)))
 
 (defbuiltin (imagealphacrop image threshold)
-    (%ensure-image
-        'ImageAlphaCrop
-        (unless (flonum? threshold)
-            (set! threshold (mkflonumw 'ImageAlphaCrop 2 threshold)))
-        (when threshold
+    (%ensure-image 'ImageAlphaCrop
+        (ensure-flonum 'ImageAlphaCrop threshold 2
             (pragma "ImageAlphaCrop(im, (float)$1)"
                     ($real->double threshold))
             NULL)))
 
 (defbuiltin (imagealphaclear image color threshold)
-    (%ensure-image
-        'ImageAlphaClear
+    (%ensure-image 'ImageAlphaClear
         (pragma "Color c")
         (when (%init-c-color 'ImageAlphaClear 2 color "c")
-            (unless (flonum? threshold)
-                (set! threshold (mkflonumw 'ImageAlphaClear 3 threshold)))
-            (when threshold
+            (ensure-flonum 'ImageAlphaClear threshold 3
                 (pragma "ImageAlphaClear(im, c, (float)$1)"
                         ($real->double threshold))
                 NULL))))
 
 (defbuiltin (imagealphamask image alphaMask)
-    (%ensure-image
-        'ImageAlphaMask
+    (%ensure-image 'ImageAlphaMask
         (resource-valid-guard
             'ImageAlphaMask
             (and (%Image? alphaMask)
@@ -2351,178 +1921,121 @@
                 NULL))))
 
 (defbuiltin (imagealphapremultiply image)
-    (%ensure-image
-        'ImageAlphaPremultiply
+    (%ensure-image 'ImageAlphaPremultiply
         (pragma "ImageAlphaPremultiply(im)")
         NULL))
 
 (defbuiltin (imageblurgaussian image blurSize)
     (%ensure-image
         'ImageBlurGaussian
-        (unless (elong? blurSize)
-            (set! blurSize (mkelongw 'ImageBlurGaussian 2 blurSize)))
-        (when blurSize
+        (ensure-elong 'ImageBlurGaussian blurSize 2
             (pragma "ImageBlurGaussian(im, (int)$1)"
                     ($belong->elong blurSize))
             NULL)))
 
 (defbuiltin (imageresize image newWidth newHeight)
-    (%ensure-image
-        'ImageResize
-        (unless (elong? newWidth)
-            (set! newWidth (mkelongw 'ImageResize 2 newWidth)))
-        (when newWidth
-            (unless (elong? newHeight)
-                (set! newHeight (mkelongw 'ImageResize 3 newHeight)))
-            (when newHeight
-                (pragma "ImageResize(im, (int)$1, (int)$2)"
-                        ($belong->elong newWidth)
-                        ($belong->elong newHeight))
-                NULL))))
+    (%ensure-image 'ImageResize
+        (ensure-elongs 'ImageResize (newWidth newHeight) 2
+            (pragma "ImageResize(im, (int)$1, (int)$2)"
+                    ($belong->elong newWidth)
+                    ($belong->elong newHeight))
+            NULL)))
 
 (defbuiltin (imageresizenn image newWidth newHeight)
-    (%ensure-image
-        'ImageResizeNN
-        (unless (elong? newWidth)
-            (set! newWidth (mkelongw 'ImageResizeNN 2 newWidth)))
-        (when newWidth
-            (unless (elong? newHeight)
-                (set! newHeight (mkelongw 'ImageResizeNN 3 newHeight)))
-            (when newHeight
-                (pragma "ImageResizeNN(im, (int)$1, (int)$2)"
-                        ($belong->elong newWidth)
-                        ($belong->elong newHeight))
-                NULL))))
+    (%ensure-image 'ImageResizeNN
+        (ensure-elongs 'ImageResizeNN (newWidth newHeight) 2
+            (pragma "ImageResizeNN(im, (int)$1, (int)$2)"
+                    ($belong->elong newWidth)
+                    ($belong->elong newHeight))
+            NULL)))
 
 (defbuiltin (imageresizecanvas image newWidth newHeight offsetX offsetY fill)
-    (%ensure-image
-        'ImageResizeCanvas
-        (unless (elong? newWidth)
-            (set! newWidth (mkelongw 'ImageResizeCanvas 2 newWidth)))
-        (when newWidth
-            (unless (elong? newHeight)
-                (set! newHeight (mkelongw 'ImageResizeCanvas 3 newHeight)))
-            (when newHeight
-                (unless (elong? offsetX)
-                    (set! offsetX (mkelongw 'ImageResizeCanvas 4 offsetX)))
-                (when offsetX
-                    (unless (elong? offsetY)
-                        (set! offsetY (mkelongw 'ImageResizeCanvas 5 offsetY)))
-                    (when offsetY
-                        (pragma "Color fill")
-                        (when (%init-c-color 'ImageResizeCanvas 6 fill "fill")
-                            (pragma "ImageResizeCanvas(im, (int)$1, (int)$2, (int)$3, (int)$4, fill)"
-                                    ($belong->elong newWidth)
-                                    ($belong->elong newHeight)
-                                    ($belong->elong offsetX)
-                                    ($belong->elong offsetY))
-                            NULL)))))))
+    (%ensure-image 'ImageResizeCanvas
+        (ensure-elongs 'ImageResizeCanvas (newWidth newHeight offsetX offsetY) 2
+            (pragma "Color fill")
+            (when (%init-c-color 'ImageResizeCanvas 6 fill "fill")
+                (pragma "ImageResizeCanvas(im, (int)$1, (int)$2, (int)$3, (int)$4, fill)"
+                        ($belong->elong newWidth)
+                        ($belong->elong newHeight)
+                        ($belong->elong offsetX)
+                        ($belong->elong offsetY))
+                NULL))))
 
 (defbuiltin (imagemipmaps image)
-    (%ensure-image
-        'ImageMipmaps
+    (%ensure-image 'ImageMipmaps
         (pragma "ImageMipmaps(im)")
         NULL))
 
 (defbuiltin (imagedither image rBpp gBpp bBpp aBpp)
-    (%ensure-image
-        'ImageDither
-        (unless (elong? rBpp)
-            (set! rBpp (mkelongw 'ImageDither 2 rBpp)))
-        (when rBpp
-            (unless (elong? gBpp)
-                (set! gBpp (mkelongw 'ImageDither 3 gBpp)))
-            (when gBpp
-                (unless (elong? bBpp)
-                    (set! bBpp (mkelongw 'ImageDither 4 bBpp)))
-                (when bBpp
-                    (unless (elong? aBpp)
-                        (set! aBpp (mkelongw 'ImageDither 5 aBpp)))
-                    (when aBpp
-                        (pragma "ImageDither(im, (int)$1, (int)$2, (int)$3, (int)$4)"
-                                ($belong->elong rBpp)
-                                ($belong->elong gBpp)
-                                ($belong->elong bBpp)
-                                ($belong->elong aBpp))
-                        NULL))))))
+    (%ensure-image 'ImageDither
+        (ensure-elongs 'ImageDither (rBpp gBpp bBpp aBpp) 2
+            (pragma "ImageDither(im, (int)$1, (int)$2, (int)$3, (int)$4)"
+                    ($belong->elong rBpp)
+                    ($belong->elong gBpp)
+                    ($belong->elong bBpp)
+                    ($belong->elong aBpp))
+            NULL)))
 
 (defbuiltin (imageflipvertical image)
-    (%ensure-image
-        'ImageFlipVertical
+    (%ensure-image 'ImageFlipVertical
         (pragma "ImageFlipVertical(im)")
         NULL))
 
 (defbuiltin (imagefliphorizontal image)
-    (%ensure-image
-        'ImageFlipHorizontal
+    (%ensure-image 'ImageFlipHorizontal
         (pragma "ImageFlipHorizontal(im)")
         NULL))
 
 (defbuiltin (imagerotate image degrees)
-    (%ensure-image
-        'ImageRotate
-        (unless (elong? degrees)
-            (set! degrees (mkelongw 'ImageRotate 2 degrees)))
-        (when degrees
+    (%ensure-image 'ImageRotate
+        (ensure-elong 'ImageRotate degrees 2
             (pragma "ImageRotate(im, (int)$1)"
                     ($belong->elong degrees))
             NULL)))
 
 (defbuiltin (imagerotatecw image)
-    (%ensure-image
-        'ImageRotateCW
+    (%ensure-image 'ImageRotateCW
         (pragma "ImageRotateCW(im)")
         NULL))
 
 (defbuiltin (imagerotateccw image)
-    (%ensure-image
-        'ImageRotateCCW
+    (%ensure-image 'ImageRotateCCW
         (pragma "ImageRotateCCW(im)")
         NULL))
 
 (defbuiltin (imagecolortint image color)
-    (%ensure-image
-        'ImageColorTint
+    (%ensure-image 'ImageColorTint
         (pragma "Color c")
         (when (%init-c-color 'ImageColorTint 2 color "c")
             (pragma "ImageColorTint(im, c)")
             NULL)))
 
 (defbuiltin (imagecolorinvert image)
-    (%ensure-image
-        'ImageColorInvert
+    (%ensure-image 'ImageColorInvert
         (pragma "ImageColorInvert(im)")
         NULL))
 
 (defbuiltin (imagecolorgrayscale image)
-    (%ensure-image
-        'ImageColorGrayscale
+    (%ensure-image 'ImageColorGrayscale
         (pragma "ImageColorGrayscale(im)")
         NULL))
 
 (defbuiltin (imagecolorcontrast image contrast)
-    (%ensure-image
-        'ImageColorContrast
-        (unless (flonum? contrast)
-            (set! contrast (mkflonumw 'ImageColorContrast 2 contrast)))
-        (when contrast
+    (%ensure-image 'ImageColorContrast
+        (ensure-flonum 'ImageColorContrast contrast 2
             (pragma "ImageColorContrast(im, (float)$1)"
                     ($real->double contrast))
             NULL)))
 
 (defbuiltin (imagecolorbrightness image brightness)
-    (%ensure-image
-        'ImageColorBrightness
-        (unless (elong? brightness)
-            (set! brightness (mkelongw 'ImageColorBrightness 2 brightness)))
-        (when brightness
+    (%ensure-image 'ImageColorBrightness
+        (ensure-elong 'ImageColorBrightness brightness 2
             (pragma "ImageColorBrightness(im, (int)$1)"
                     ($belong->elong brightness))
             NULL)))
 
 (defbuiltin (imagecolorreplace image color replace)
-    (%ensure-image
-        'ImageColorReplace
+    (%ensure-image 'ImageColorReplace
         (pragma "Color color, replace")
         (when (and (%init-c-color 'ImageColorReplace 2 color "color")
                    (%init-c-color 'ImageColorReplace 3 replace "replace"))
@@ -2530,8 +2043,7 @@
             NULL)))
 
 (defbuiltin (loadimagecolors image)
-    (%ensure-image
-        'LoadImageColors
+    (%ensure-image 'LoadImageColors
         (pragma "Color *pixels = LoadImageColors(*im);
                  int size = im->width * im->height;
                  obj_t ret = bpc_make_php_hash_size_hint(size);
@@ -2547,11 +2059,8 @@
         (pragma::obj "ret")))
 
 (defbuiltin (loadimagepalette image maxPaletteSize (ref . colorCount))
-    (%ensure-image
-        'LoadImagePalette
-        (unless (elong? maxPaletteSize)
-            (set! maxPaletteSize (mkelongw 'LoadImagePalette 2 maxPaletteSize)))
-        (when maxPaletteSize
+    (%ensure-image 'LoadImagePalette
+        (ensure-elong 'LoadImagePalette maxPaletteSize 2
             (pragma "Color *palette;
                      int colorCount;")
             (pragma "palette = LoadImagePalette(*im, (int)$1, &colorCount)"
@@ -2570,30 +2079,75 @@
             (pragma::obj "ret"))))
 
 (defbuiltin (getimagealphaborder image threshold)
-    (%ensure-image
-        'GetImageAlphaBorder
-        (unless (flonum? threshold)
-            (set! threshold (mkflonumw 'GetImageAlphaBorder 2 threshold)))
-        (when threshold
+    (%ensure-image 'GetImageAlphaBorder
+        (ensure-flonum 'GetImageAlphaBorder threshold 2
             (pragma "Rectangle r")
             (pragma "r = GetImageAlphaBorder(*im, (float)$1)"
                     ($real->double threshold))
             (%mkrect-r "r"))))
 
 (defbuiltin (getimagecolor image x y)
-    (%ensure-image
-        'GetImageColor
-        (unless (elong? x)
-            (set! x (mkelongw 'GetImageColor 2 x)))
-        (when x
-            (unless (elong? y)
-                (set! y (mkelongw 'GetImageColor 3 y)))
-            (when y
-                (pragma "Color c")
-                (pragma "c = GetImageColor(*im, (int)$1, (int)$2)"
-                        ($belong->elong x)
-                        ($belong->elong y))
-                (%mkcolor-c "c")))))
+    (%ensure-image 'GetImageColor
+        (ensure-elongs 'GetImageColor (x y) 2
+            (pragma "Color c")
+            (pragma "c = GetImageColor(*im, (int)$1, (int)$2)"
+                    ($belong->elong x)
+                    ($belong->elong y))
+            (%mkcolor-c "c"))))
+
+; Image drawing functions
+
+(defbuiltin (imageclearbackground image color)
+    (%ensure-image 'ImageClearBackground
+        (pragma "Color c")
+        (when (%init-c-color 'ImageClearBackground 2 color "c")
+            (pragma "ImageClearBackground(im, c)")
+            NULL)))
+
+(defbuiltin (imagedrawpixel image posX posY color)
+    (%ensure-image 'ImageDrawPixel
+        (ensure-elongs 'ImageDrawPixel (posX posY) 2
+            (pragma "Color c")
+            (when (%init-c-color 'ImageDrawPixel 4 color "c")
+                (pragma "ImageDrawPixel(im, (int)$1, (int)$2, c)"
+                        ($belong->elong posX)
+                        ($belong->elong posY))
+                NULL))))
+
+(defbuiltin (imagedrawpixelv image position color)
+    (%ensure-image 'ImageDrawPixelV
+        (pragma "Vector2 pos;
+                 Color c")
+        (when (and (%init-c-vector2 'ImageDrawPixelV 2 position "pos")
+                   (%init-c-color 'ImageDrawPixelV 3 color "c"))
+            (pragma "ImageDrawPixelV(im, pos, c)")
+            NULL)))
+
+(defbuiltin (imagedrawline image startPosX startPosY endPosX endPosY color)
+    (%ensure-image 'ImageDrawLine
+        (ensure-elongs 'ImageDrawLine (startPosX startPosY endPosX endPosY) 2
+            (pragma "Color c")
+            (when (%init-c-color 'ImageDrawLine 6 color "c")
+                (pragma "ImageDrawLine(im, (int)$1, (int)$2, (int)$3, (int)$4, c)"
+                        ($belong->elong startPosX)
+                        ($belong->elong startPosY)
+                        ($belong->elong endPosX)
+                        ($belong->elong endPosY))
+                NULL))))
+
+;RLAPI void ImageDrawLine(Image *dst, int startPosX, int startPosY, int endPosX, int endPosY, Color color); // Draw line within an image
+;RLAPI void ImageDrawLineV(Image *dst, Vector2 start, Vector2 end, Color color);                          // Draw line within an image (Vector version)
+;RLAPI void ImageDrawCircle(Image *dst, int centerX, int centerY, int radius, Color color);               // Draw a filled circle within an image
+;RLAPI void ImageDrawCircleV(Image *dst, Vector2 center, int radius, Color color);                        // Draw a filled circle within an image (Vector version)
+;RLAPI void ImageDrawCircleLines(Image *dst, int centerX, int centerY, int radius, Color color);          // Draw circle outline within an image
+;RLAPI void ImageDrawCircleLinesV(Image *dst, Vector2 center, int radius, Color color);                   // Draw circle outline within an image (Vector version)
+;RLAPI void ImageDrawRectangle(Image *dst, int posX, int posY, int width, int height, Color color);       // Draw rectangle within an image
+;RLAPI void ImageDrawRectangleV(Image *dst, Vector2 position, Vector2 size, Color color);                 // Draw rectangle within an image (Vector version)
+;RLAPI void ImageDrawRectangleRec(Image *dst, Rectangle rec, Color color);                                // Draw rectangle within an image
+;RLAPI void ImageDrawRectangleLines(Image *dst, Rectangle rec, int thick, Color color);                   // Draw rectangle lines within an image
+;RLAPI void ImageDraw(Image *dst, Image src, Rectangle srcRec, Rectangle dstRec, Color tint);             // Draw a source image within a destination image (tint applied to source)
+;RLAPI void ImageDrawText(Image *dst, const char *text, int posX, int posY, int fontSize, Color color);   // Draw text (using default font) within an image (destination)
+;RLAPI void ImageDrawTextEx(Image *dst, Font font, const char *text, Vector2 position, float fontSize, float spacing, Color tint); // Draw text (custom sprite font) within an image (destination)
 
 ; Texture loading functions
 
@@ -2614,44 +2168,32 @@
         render-texture))
 
 (defbuiltin (loadtexture fileName)
-    (set! fileName (mkpathw 'LoadTexture 1 fileName))
-    (when fileName
+    (ensure-path 'LoadTexture fileName 1
         (pragma "Texture2D t")
         (pragma "t = LoadTexture($1)" ($bstring->string fileName))
         (%mktexture "t")))
 
 (defbuiltin (loadtexturefromimage image)
-    (%ensure-image
-        'LoadTextureFromImage
-        (begin
-            (pragma "Texture2D t")
-            (pragma "t = LoadTextureFromImage(*im)")
-            (%mktexture "t"))))
+    (%ensure-image 'LoadTextureFromImage
+        (pragma "Texture2D t")
+        (pragma "t = LoadTextureFromImage(*im)")
+        (%mktexture "t")))
 
 (defbuiltin (loadtexturecubemap image layout)
-    (%ensure-image
-        'LoadTextureCubemap
-        (begin
-            (unless (elong? layout)
-                (set! layout (mkelongw 'LoadTextureCubemap 2 layout)))
-            (when layout
-                (pragma "TextureCubemap t")
-                (pragma "t = LoadTextureCubemap(*im, (int)$1)"
-                        ($belong->elong layout))
-                (%mktexture "t")))))
+    (%ensure-image 'LoadTextureCubemap
+        (ensure-elong 'LoadTextureCubemap layout 2
+            (pragma "TextureCubemap t")
+            (pragma "t = LoadTextureCubemap(*im, (int)$1)"
+                    ($belong->elong layout))
+            (%mktexture "t"))))
 
 (defbuiltin (loadrendertexture width height)
-    (unless (elong? width)
-        (set! width (mkelongw 'LoadRenderTexture 1 width)))
-    (when width
-        (unless (elong? height)
-            (set! height (mkelongw 'LoadRenderTexture 2 height)))
-        (when height
-            (pragma "RenderTexture2D rt")
-            (pragma "rt = LoadRenderTexture((int)$1, (int)$2)"
-                    ($belong->elong width)
-                    ($belong->elong height))
-            (%mkrendertexture "rt"))))
+    (ensure-elongs 'LoadRenderTexture (width height) 1
+        (pragma "RenderTexture2D rt")
+        (pragma "rt = LoadRenderTexture((int)$1, (int)$2)"
+                ($belong->elong width)
+                ($belong->elong height))
+        (%mkrendertexture "rt")))
 
 (defbuiltin (istextureready texture)
     (pragma "Texture2D t")
@@ -2683,9 +2225,7 @@
 (defbuiltin (fade color alpha)
     (pragma "Color c")
     (when (%init-c-color 'Fade 1 color "c")
-        (unless (flonum? alpha)
-            (set! alpha (mkflonumw 'Fade 2 alpha)))
-        (when alpha
+        (ensure-flonum 'Fade alpha 2
             (pragma "Color f")
             (pragma "f = Fade(c, (float)$1)" ($real->double alpha))
             (%mkcolor-c "f"))))
@@ -2714,21 +2254,13 @@
         (%mkvector3-v "v3")))
 
 (defbuiltin (colorfromhsv hue saturation value)
-    (unless (flonum? hue)
-        (set! hue (mkflonumw 'ColorFromHSV 1 hue)))
-    (when hue
-        (unless (flonum? saturation)
-            (set! saturation (mkflonumw 'ColorFromHSV 2 saturation)))
-        (when saturation
-            (unless (flonum? value)
-                (set! value (mkflonumw 'ColorFromHSV 3 value)))
-            (when value
-                (pragma "Color c")
-                (pragma "c = ColorFromHSV((float)$1, (float)$2, (float)$3)"
-                        ($real->double hue)
-                        ($real->double saturation)
-                        ($real->double value))
-                (%mkcolor-c "c")))))
+    (ensure-flonums 'ColorFromHSV (hue saturation value) 1
+        (pragma "Color c")
+        (pragma "c = ColorFromHSV((float)$1, (float)$2, (float)$3)"
+                ($real->double hue)
+                ($real->double saturation)
+                ($real->double value))
+        (%mkcolor-c "c")))
 
 (defbuiltin (colortint color tint)
     (pragma "Color c, t")
@@ -2740,9 +2272,7 @@
 (defbuiltin (colorbrightness color factor)
     (pragma "Color c")
     (when (%init-c-color 'ColorBrightness 1 color "c")
-        (unless (flonum? factor)
-            (set! factor (mkflonumw 'ColorBrightness 2 factor)))
-        (when factor
+        (ensure-flonum 'ColorBrightness factor 2
             (pragma "c = ColorBrightness(c, (float)$1)"
                     ($real->double factor))
             (%mkcolor-c "c"))))
@@ -2750,9 +2280,7 @@
 (defbuiltin (colorcontrast color contrast)
     (pragma "Color c")
     (when (%init-c-color 'ColorContrast 1 color "c")
-        (unless (flonum? contrast)
-            (set! contrast (mkflonumw 'ColorContrast 2 contrast)))
-        (when contrast
+        (ensure-flonum 'ColorContrast contrast 2
             (pragma "c = ColorContrast(c, (float)$1)"
                     ($real->double contrast))
             (%mkcolor-c "c"))))
@@ -2760,9 +2288,7 @@
 (defbuiltin (coloralpha color alpha)
     (pragma "Color c")
     (when (%init-c-color 'ColorAlpha 1 color "c")
-        (unless (flonum? alpha)
-            (set! alpha (mkflonumw 'ColorAlpha 2 alpha)))
-        (when alpha
+        (ensure-flonum 'ColorAlpha alpha 2
             (pragma "c = ColorAlpha(c, (float)$1)"
                     ($real->double alpha))
             (%mkcolor-c "c"))))
@@ -2776,9 +2302,7 @@
         (%mkcolor-c "c")))
 
 (defbuiltin (getcolor hexValue)
-    (unless (elong? hexValue)
-        (set! hexValue (mkelongw 'GetColor 1 hexValue)))
-    (when hexValue
+    (ensure-elong 'GetColor hexValue 1
         (pragma "Color c")
         (pragma "c = GetColor((unsigned int)$1)"
                 ($belong->elong hexValue))
@@ -2788,19 +2312,11 @@
 ;TODO void SetPixelColor(void *dstPtr, Color color, int format);
 
 (defbuiltin (getpixeldatasize width height format)
-    (unless (elong? width)
-        (set! width (mkelongw 'GetPixelDataSize 1 width)))
-    (when width
-        (unless (elong? height)
-            (set! height (mkelongw 'GetPixelDataSize 2 height)))
-        (when height
-            (unless (elong? format)
-                (set! format (mkelongw 'GetPixelDataSize 3 format)))
-            (when format
-                (pragma::elong "GetPixelDataSize((int)$1, (int)$2, (int)$3)"
-                               ($belong->elong width)
-                               ($belong->elong height)
-                               ($belong->elong format))))))
+    (ensure-elongs 'GetPixelDataSize (width height format) 1
+        (pragma::elong "GetPixelDataSize((int)$1, (int)$2, (int)$3)"
+                       ($belong->elong width)
+                       ($belong->elong height)
+                       ($belong->elong format))))
 
 ; Font loading/unloading functions
 
@@ -2813,8 +2329,7 @@
     (make-resource %Font (pragma::void* "font")))
 
 (defbuiltin (loadfont fileName)
-    (set! fileName (mkpathw 'LoadFont 1 fileName))
-    (when fileName
+    (ensure-path 'LoadFont fileName 1
         (pragma "Font *font = (Font *)GC_MALLOC_ATOMIC(sizeof(Font))")
         (pragma "*font = LoadFont($1)" ($bstring->string fileName))
         (make-resource %Font (pragma::void* "font"))))
@@ -2824,8 +2339,7 @@
         (pragma "int *codepoints = NULL;
                  int codepointCount = 0")
         (unless (null? codepoints)
-            (set! codepoints (mkhashw ,func-name ,arg-idx codepoints))
-            (when codepoints
+            (ensure-hash ,func-name codepoints ,arg-idx
                 (let ((size (php-hash-size codepoints)))
                     (when (>fx size 0)
                         (pragma "codepoints = (int *)GC_MALLOC_ATOMIC(sizeof(int) * $1)"
@@ -2845,14 +2359,9 @@
         ,@code))
 
 (defbuiltin (loadfontex fileName fontSize (codepoints NULL))
-    (set! fileName (mkpathw 'LoadFontEx 1 fileName))
-    (when fileName
-        (unless (elong? fontSize)
-            (set! fontSize (mkelongw 'LoadFontEx 2 fontSize)))
-        (when fontSize
-            (%with-c-codepoints
-                'LoadFontEx
-                3
+    (ensure-path 'LoadFontEx fileName 1
+        (ensure-elong 'LoadFontEx fontSize 2
+            (%with-c-codepoints 'LoadFontEx 3
                 (pragma "Font *font = (Font *)GC_MALLOC_ATOMIC(sizeof(Font))")
                 (pragma "*font = LoadFontEx($1, (int)$2, codepoints, codepointCount)"
                         ($bstring->string fileName)
@@ -2860,57 +2369,35 @@
                 (make-resource %Font (pragma::void* "font"))))))
 
 (defbuiltin (loadfontfromimage image key firstChar)
-    (%ensure-image
-        'LoadFontFromImage
-        (begin
-            (pragma "Color key")
-            (when (%init-c-color 'LoadFontFromImage 2 key "key")
-                (unless (elong? firstChar)
-                    (set! firstChar (mkelongw 'LoadFontFromImage 3 firstChar)))
-                (when firstChar
-                    (pragma "Font *font = (Font *)GC_MALLOC_ATOMIC(sizeof(Font))")
-                    (pragma "*font = LoadFontFromImage(*im, key, (int)$1)"
-                            ($belong->elong firstChar))
-                    (make-resource %Font (pragma::void* "font")))))))
+    (%ensure-image 'LoadFontFromImage
+        (pragma "Color key")
+        (when (%init-c-color 'LoadFontFromImage 2 key "key")
+            (ensure-elong 'LoadFontFromImage firstChar 3
+                (pragma "Font *font = (Font *)GC_MALLOC_ATOMIC(sizeof(Font))")
+                (pragma "*font = LoadFontFromImage(*im, key, (int)$1)"
+                        ($belong->elong firstChar))
+                (make-resource %Font (pragma::void* "font"))))))
 
 (defbuiltin (loadfontfrommemory fileType fileData fontSize codepoints)
-    (unless (string? fileType)
-        (set! fileType (mkstrw 'LoadFontFromMemory 1 fileType)))
-    (when fileType
-        (unless (string? fileData)
-            (set! fileData (mkstrw 'LoadFontFromMemory 2 fileData)))
-        (when fileData
-            (unless (elong? fontSize)
-                (set! fontSize (mkelongw 'LoadFontFromMemory 3 fontSize)))
-            (when fontSize
-                (%with-c-codepoints
-                    'LoadFontFromMemory
-                    4
-                    (pragma "Font *font = (Font *)GC_MALLOC_ATOMIC(sizeof(Font))")
-                    (pragma "*font = LoadFontFromMemory($1, BSTRING_TO_STRING($2), STRING_LENGTH($2), (int)$3, codepoints, codepointCount)"
-                            ($bstring->string fileType)
-                            fileData
-                            ($belong->elong fontSize))
-                    (make-resource %Font (pragma::void* "font")))))))
+    (ensure-strs 'LoadFontFromMemory (fileType fileData) 1
+        (ensure-elong 'LoadFontFromMemory fontSize 3
+            (%with-c-codepoints 'LoadFontFromMemory 4
+                (pragma "Font *font = (Font *)GC_MALLOC_ATOMIC(sizeof(Font))")
+                (pragma "*font = LoadFontFromMemory($1, BSTRING_TO_STRING($2), STRING_LENGTH($2), (int)$3, codepoints, codepointCount)"
+                        ($bstring->string fileType)
+                        fileData
+                        ($belong->elong fontSize))
+                (make-resource %Font (pragma::void* "font"))))))
 
 (defbuiltin (isfontready font)
-    (%ensure-font
-        'IsFontReady
+    (%ensure-font 'IsFontReady
         (pragma::bool "IsFontReady(*font)")))
 
 (defbuiltin (loadfontdata fileData fontSize codepoints type)
-    (unless (string? fileData)
-        (set! fileData (mkstrw 'LoadFontData 1 fileData)))
-    (when fileData
-        (unless (elong? fontSize)
-            (set! fontSize (mkelongw 'LoadFontData 2 fontSize)))
-        (when fontSize
-            (%with-c-codepoints
-                'LoadFontData
-                3
-                (unless (elong? type)
-                    (set! type (mkelongw 'LoadFontData 4 type)))
-                (when type
+    (ensure-str 'LoadFontData fileData 1
+        (ensure-elong 'LoadFontData fontSize 2
+            (%with-c-codepoints 'LoadFontData 3
+                (ensure-elong 'LoadFontData type 4
                     (pragma "GlyphInfo *glyphs")
                     (pragma "glyphs = LoadFontData(BSTRING_TO_STRING($1), STRING_LENGTH($1), (int)$2, codepoints, codepointCount, (int)$3)"
                             fileData
@@ -2919,38 +2406,29 @@
                     (make-resource %Glyphs (pragma::void* "glyphs") (pragma::int "codepointCount")))))))
 
 (defbuiltin (genimagefontatlas glyphs (ref . glyphRecs) fontSize padding packMethod)
-    (%ensure-glyphs
-        (unless (elong? fontSize)
-            (set! fontSize (mkelongw 'GenImageFontAtlas 3 fontSize)))
-        (when fontSize
-            (unless (elong? padding)
-                (set! padding (mkelongw 'GenImageFontAtlas 4 padding)))
-            (when padding
-                (unless (elong? packMethod)
-                    (set! packMethod (mkelongw 'GenImageFontAtlas 5 packMethod)))
-                (when packMethod
-                    (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image));
-                             Rectangle *recs;")
-                    (pragma "*im = GenImageFontAtlas(glyphs, &recs, glyphCount, (int)$1, (int)$2, (int)$3)"
-                            ($belong->elong fontSize)
-                            ($belong->elong padding)
-                            ($belong->elong packMethod))
-                    (pragma "obj_t glyphRecs = bpc_make_php_hash_size_hint(glyphCount);
-                             for (int i = 0; i < glyphCount; i++) {
-                                obj_t rect = bpc_make_php_hash_size_hint(4);
-                                bpc_php_hash_insert_elong_obj(rect, 0, DOUBLE_TO_REAL(recs[i].x));
-                                bpc_php_hash_insert_elong_obj(rect, 1, DOUBLE_TO_REAL(recs[i].y));
-                                bpc_php_hash_insert_elong_obj(rect, 2, DOUBLE_TO_REAL(recs[i].width));
-                                bpc_php_hash_insert_elong_obj(rect, 3, DOUBLE_TO_REAL(recs[i].height));
-                                bpc_php_hash_insert_elong_obj(glyphRecs, i, rect);
-                             }
-                             RL_FREE(recs)")
-                    (container-value-set! glyphRecs (pragma::obj "glyphRecs"))
-                    (make-resource %Image (pragma::void* "im")))))))
+    (%ensure-glyphs 'GenImageFontAtlas
+        (ensure-elongs 'GenImageFontAtlas (fontSize padding packMethod) 3
+            (pragma "Image *im = (Image *)GC_MALLOC_ATOMIC(sizeof(Image));
+                     Rectangle *recs;")
+            (pragma "*im = GenImageFontAtlas(glyphs, &recs, glyphCount, (int)$1, (int)$2, (int)$3)"
+                    ($belong->elong fontSize)
+                    ($belong->elong padding)
+                    ($belong->elong packMethod))
+            (pragma "obj_t glyphRecs = bpc_make_php_hash_size_hint(glyphCount);
+                     for (int i = 0; i < glyphCount; i++) {
+                        obj_t rect = bpc_make_php_hash_size_hint(4);
+                        bpc_php_hash_insert_elong_obj(rect, 0, DOUBLE_TO_REAL(recs[i].x));
+                        bpc_php_hash_insert_elong_obj(rect, 1, DOUBLE_TO_REAL(recs[i].y));
+                        bpc_php_hash_insert_elong_obj(rect, 2, DOUBLE_TO_REAL(recs[i].width));
+                        bpc_php_hash_insert_elong_obj(rect, 3, DOUBLE_TO_REAL(recs[i].height));
+                        bpc_php_hash_insert_elong_obj(glyphRecs, i, rect);
+                     }
+                     RL_FREE(recs)")
+            (container-value-set! glyphRecs (pragma::obj "glyphRecs"))
+            (make-resource %Image (pragma::void* "im")))))
 
 (defbuiltin (unloadfontdata glyphs)
-    (%ensure-glyphs
-        'UnloadFontData
+    (%ensure-glyphs 'UnloadFontData
         (pragma "UnloadFontData(glyphs, glyphCount)")
         (%Glyphs-glyphs-set! glyphs #f)
         (%Glyphs-glyphCount-set! glyphs 0)
@@ -2958,51 +2436,38 @@
         NULL))
 
 (defbuiltin (unloadfont font)
-    (%ensure-font
-        'UnloadFont
+    (%ensure-font 'UnloadFont
         (pragma "UnloadFont(*font)")
         (%Font-intern-set! font #f)
         (%Font-description-set! font #f)
         NULL))
 
 (defbuiltin (exportfontascode font fileName)
-    (%ensure-font
-        'ExportFontAsCode
-        (set! fileName (mkpathw 'ExportFontAsCode 2 fileName))
-        (when fileName
+    (%ensure-font 'ExportFontAsCode
+        (ensure-path 'ExportFontAsCode fileName 2
             (pragma::bool "ExportFontAsCode(*font, $1)"
                           ($bstring->string fileName)))))
 
 ; Input-related functions: keyboard
 
 (defbuiltin (iskeypressed key)
-    (unless (elong? key)
-        (set! key (mkelongw 'IsKeyPressed 1 key)))
-    (when key
+    (ensure-elong 'IsKeyPressed key 1
         (pragma::bool "IsKeyPressed((int)$1)" ($belong->elong key))))
 
 (defbuiltin (iskeypressedrepeat key)
-    (unless (elong? key)
-        (set! key (mkelongw 'IsKeyPressedRepeat 1 key)))
-    (when key
+    (ensure-elong 'IsKeyPressedRepeat key 1
         (pragma::bool "IsKeyPressedRepeat((int)$1)" ($belong->elong key))))
 
 (defbuiltin (iskeydown key)
-    (unless (elong? key)
-        (set! key (mkelongw 'IsKeyDown 1 key)))
-    (when key
+    (ensure-elong 'IsKeyDown key 1
         (pragma::bool "IsKeyDown((int)$1)" ($belong->elong key))))
 
 (defbuiltin (iskeyreleased key)
-    (unless (elong? key)
-        (set! key (mkelongw 'IsKeyReleased 1 key)))
-    (when key
+    (ensure-elong 'IsKeyReleased key 1
         (pragma::bool "IsKeyReleased((int)$1)" ($belong->elong key))))
 
 (defbuiltin (iskeyup key)
-    (unless (elong? key)
-        (set! key (mkelongw 'IsKeyUp 1 key)))
-    (when key
+    (ensure-elong 'IsKeyUp key 1
         (pragma::bool "IsKeyUp((int)$1)" ($belong->elong key))))
 
 (defbuiltin (getkeypressed)
@@ -3012,39 +2477,29 @@
     (pragma::elong "GetCharPressed()"))
 
 (defbuiltin (setexitkey key)
-    (unless (elong? key)
-        (set! key (mkelongw 'SetExitKey 1 key)))
-    (when key
+    (ensure-elong 'SetExitKey key 1
         (pragma "SetExitKey((int)$1)" ($belong->elong key))
         NULL))
 
 ; Input-related functions: mouse
 
 (defbuiltin (ismousebuttonpressed button)
-    (unless (elong? button)
-        (set! button (mkelongw 'IsMouseButtonPressed 1 button)))
-    (when button
+    (ensure-elong 'IsMouseButtonPressed button 1
         (pragma::bool "IsMouseButtonPressed((int)$1)"
                       ($belong->elong button))))
 
 (defbuiltin (ismousebuttondown button)
-    (unless (elong? button)
-        (set! button (mkelongw 'IsMouseButtonDown 1 button)))
-    (when button
+    (ensure-elong 'IsMouseButtonDown button 1
         (pragma::bool "IsMouseButtonDown((int)$1)"
                       ($belong->elong button))))
 
 (defbuiltin (ismousebuttonreleased button)
-    (unless (elong? button)
-        (set! button (mkelongw 'IsMouseButtonReleased 1 button)))
-    (when button
+    (ensure-elong 'IsMouseButtonReleased button 1
         (pragma::bool "IsMouseButtonReleased((int)$1)"
                       ($belong->elong button))))
 
 (defbuiltin (ismousebuttonup button)
-    (unless (elong? button)
-        (set! button (mkelongw 'IsMouseButtonUp 1 button)))
-    (when button
+    (ensure-elong 'IsMouseButtonUp button 1
         (pragma::bool "IsMouseButtonUp((int)$1)"
                       ($belong->elong button))))
 
@@ -3063,40 +2518,25 @@
     (%mkvector2-v "v2"))
 
 (defbuiltin (setmouseposition x y)
-    (unless (elong? x)
-        (set! x (mkelongw 'SetMousePosition 1 x)))
-    (when x
-        (unless (elong? y)
-            (set! y (mkelongw 'SetMousePosition 2 y)))
-        (when y
-            (pragma "SetMousePosition((int)$1, (int)$2)"
-                    ($belong->elong x)
-                    ($belong->elong y))
-            NULL)))
+    (ensure-elongs 'SetMousePosition (x y) 1
+        (pragma "SetMousePosition((int)$1, (int)$2)"
+                ($belong->elong x)
+                ($belong->elong y))
+        NULL))
 
 (defbuiltin (setmouseoffset offsetX offsetY)
-    (unless (elong? offsetX)
-        (set! offsetX (mkelongw 'SetMouseOffset 1 offsetX)))
-    (when offsetX
-        (unless (elong? offsetY)
-            (set! offsetY (mkelongw 'SetMousePosition 2 offsetY)))
-        (when offsetY
-            (pragma "SetMouseOffset((int)$1, (int)$2)"
-                    ($belong->elong offsetX)
-                    ($belong->elong offsetY))
-            NULL)))
+    (ensure-elongs 'SetMouseOffset (offsetX offsetY) 1
+        (pragma "SetMouseOffset((int)$1, (int)$2)"
+                ($belong->elong offsetX)
+                ($belong->elong offsetY))
+        NULL))
 
 (defbuiltin (setmousescale scaleX scaleY)
-    (unless (flonum? scaleX)
-        (set! scaleX (mkflonumw 'SetMouseScale 1 scaleX)))
-    (when scaleX
-        (unless (flonum? scaleY)
-            (set! scaleY (mkflonumw 'SetMouseScale 2 scaleY)))
-        (when scaleY
-            (pragma "SetMouseScale((float)$1, (float)$2)"
-                    ($real->double scaleX)
-                    ($real->double scaleY))
-            NULL)))
+    (ensure-flonums 'SetMouseScale (scaleX scaleY) 1
+        (pragma "SetMouseScale((float)$1, (float)$2)"
+                ($real->double scaleX)
+                ($real->double scaleY))
+        NULL))
 
 (defbuiltin (getmousewheelmove)
     (pragma::double "GetMouseWheelMove()"))
@@ -3106,9 +2546,7 @@
     (%mkvector2-v "v2"))
 
 (defbuiltin (setmousecursor cursor)
-    (unless (elong? cursor)
-        (set! cursor (mkelongw 'SetMouseCursor 1 cursor)))
-    (when cursor
+    (ensure-elong 'SetMouseCursor cursor 1
         (pragma "SetMouseCursor((int)$1)"
                 ($belong->elong cursor))
         NULL))
@@ -3116,48 +2554,33 @@
 ; Random values generation functions
 
 (defbuiltin (setrandomseed seed)
-    (unless (elong? seed)
-        (set! seed (mkelongw 'SetRandomSeed 1 seed)))
-    (when seed
+    (ensure-elong 'SetRandomSeed seed 1
         (pragma "SetRandomSeed((unsigned int)$1)"
                 ($belong->elong seed))
         NULL))
 
 (defbuiltin (getrandomvalue min max)
-    (unless (elong? min)
-        (set! min (mkelongw 'GetRandomValue 1 min)))
-    (when min
-        (unless (elong? max)
-            (set! max (mkelongw 'GetRandomValue 2 max)))
-        (when max
-            (pragma::elong "GetRandomValue((int)$1, (int)$2)"
-                           ($belong->elong min)
-                           ($belong->elong max)))))
+    (ensure-elongs 'GetRandomValue (min max) 1
+        (pragma::elong "GetRandomValue((int)$1, (int)$2)"
+                       ($belong->elong min)
+                       ($belong->elong max))))
 
 (defbuiltin (loadrandomsequence count min max)
-    (unless (elong? count)
-        (set! count (mkelongw 'LoadRandomSequence 1 count)))
-    (when count
-        (unless (elong? min)
-            (set! min (mkelongw 'LoadRandomSequence 2 min)))
-        (when min
-            (unless (elong? max)
-                (set! max (mkelongw 'LoadRandomSequence 3 max)))
-            (when max
-                (pragma "obj_t ret = BNIL")
-                (pragma "unsigned int count = (unsigned int)$1;
-                         int *sequence = LoadRandomSequence(count, (int)$2, (int)$3);
-                         if (sequence) {
-                             ret = bpc_make_php_hash_size_hint(count);
-                             for (int i = 0; i < count; i++) {
-                                bpc_php_hash_insert_elong_elong(ret, i, sequence[i]);
-                             }
-                             UnloadRandomSequence(sequence);
-                         }"
-                        ($belong->elong count)
-                        ($belong->elong min)
-                        ($belong->elong max))
-                (pragma::obj "ret")))))
+    (ensure-elongs 'LoadRandomSequence (count min max) 1
+        (pragma "obj_t ret = BNIL")
+        (pragma "unsigned int count = (unsigned int)$1;
+                 int *sequence = LoadRandomSequence(count, (int)$2, (int)$3);
+                 if (sequence) {
+                     ret = bpc_make_php_hash_size_hint(count);
+                     for (int i = 0; i < count; i++) {
+                        bpc_php_hash_insert_elong_elong(ret, i, sequence[i]);
+                     }
+                     UnloadRandomSequence(sequence);
+                 }"
+                ($belong->elong count)
+                ($belong->elong min)
+                ($belong->elong max))
+        (pragma::obj "ret")))
 
 ; Basic geometric 3D shapes drawing functions
 
@@ -3181,14 +2604,10 @@
 (defbuiltin (drawcircle3d center radius rotationAxis rotationAngle color)
     (pragma "Vector3 center")
     (when (%init-c-vector3 'DrawCircle3D 1 center "center")
-        (unless (flonum? radius)
-            (set! radius (mkflonumw 'DrawCircle3D 2 radius)))
-        (when radius
+        (ensure-flonum 'DrawCircle3D radius 2
             (pragma "Vector3 rotationAxis")
             (when (%init-c-vector3 'DrawCircle3D 3 rotationAxis "rotationAxis")
-                (unless (flonum? rotationAngle)
-                    (set! rotationAngle (mkflonumw 'DrawCircle3D 4 rotationAngle)))
-                (when rotationAngle
+                (ensure-flonum 'DrawCircle3D rotationAngle 4
                     (pragma "Color c")
                     (when (%init-c-color 'DrawCircle3D 5 color "c")
                         (pragma "DrawCircle3D(center, (float)$1, rotationAxis, (float)$2, c)"
@@ -3207,9 +2626,7 @@
         NULL))
 
 (defbuiltin (drawtrianglestrip3d points color)
-    (%with-c-vector3-points
-        'DrawTriangleStrip3D
-        1
+    (%with-c-vector3-points 'DrawTriangleStrip3D 1
         (pragma "Color c")
         (when (%init-c-color 'DrawTriangleStrip3D 2 color "c")
             (pragma "DrawTriangleStrip3D(points, pointCount, c)")
@@ -3218,22 +2635,14 @@
 (defbuiltin (drawcube position width height length color)
     (pragma "Vector3 pos")
     (when (%init-c-vector3 'DrawCube 1 position "pos")
-        (unless (flonum? width)
-            (set! width (mkflonumw 'DrawCube 2 width)))
-        (when width
-            (unless (flonum? height)
-                (set! height (mkflonumw 'DrawCube 3 height)))
-            (when height
-                (unless (flonum? length)
-                    (set! length (mkflonumw 'DrawCube 4 length)))
-                (when length
-                    (pragma "Color c")
-                    (when (%init-c-color 'DrawCube 5 color "c")
-                        (pragma "DrawCube(pos, (float)$1, (float)$2, (float)$3, c)"
-                                ($real->double width)
-                                ($real->double height)
-                                ($real->double length))
-                        NULL))))))
+        (ensure-flonums 'DrawCube (width height length) 2
+            (pragma "Color c")
+            (when (%init-c-color 'DrawCube 5 color "c")
+                (pragma "DrawCube(pos, (float)$1, (float)$2, (float)$3, c)"
+                        ($real->double width)
+                        ($real->double height)
+                        ($real->double length))
+                NULL))))
 
 (defbuiltin (drawcubev position size color)
     (pragma "Vector3 pos, size;
@@ -3247,22 +2656,14 @@
 (defbuiltin (drawcubewires position width height length color)
     (pragma "Vector3 pos")
     (when (%init-c-vector3 'DrawCubeWires 1 position "pos")
-        (unless (flonum? width)
-            (set! width (mkflonumw 'DrawCubeWires 2 width)))
-        (when width
-            (unless (flonum? height)
-                (set! height (mkflonumw 'DrawCubeWires 3 height)))
-            (when height
-                (unless (flonum? length)
-                    (set! length (mkflonumw 'DrawCubeWires 4 length)))
-                (when length
-                    (pragma "Color c")
-                    (when (%init-c-color 'DrawCubeWires 5 color "c")
-                        (pragma "DrawCubeWires(pos, (float)$1, (float)$2, (float)$3, c)"
-                                ($real->double width)
-                                ($real->double height)
-                                ($real->double length))
-                        NULL))))))
+        (ensure-flonums 'DrawCubeWires (width height length) 2
+            (pragma "Color c")
+            (when (%init-c-color 'DrawCubeWires 5 color "c")
+                (pragma "DrawCubeWires(pos, (float)$1, (float)$2, (float)$3, c)"
+                        ($real->double width)
+                        ($real->double height)
+                        ($real->double length))
+                NULL))))
 
 (defbuiltin (drawcubewiresv position size color)
     (pragma "Vector3 pos, size;
@@ -3276,9 +2677,7 @@
 (defbuiltin (drawsphere centerPos radius color)
     (pragma "Vector3 center")
     (when (%init-c-vector3 'DrawSphere 1 centerPos "center")
-        (unless (flonum? radius)
-            (set! radius (mkflonumw 'DrawSphere 2 radius)))
-        (when radius
+        (ensure-flonum 'DrawSphere radius 2
             (pragma "Color c")
             (when (%init-c-color 'DrawSphere 3 color "c")
                 (pragma "DrawSphere(center, (float)$1, c)"
@@ -3288,174 +2687,112 @@
 (defbuiltin (drawsphereex centerPos radius rings slices color)
     (pragma "Vector3 center")
     (when (%init-c-vector3 'DrawSphereEx 1 centerPos "center")
-        (unless (flonum? radius)
-            (set! radius (mkflonumw 'DrawSphereEx 2 radius)))
-        (when radius
-            (unless (elong? rings)
-                (set! rings (mkelongw 'DrawSphereEx 3 rings)))
-            (when rings
-                (unless (elong? slices)
-                    (set! slices (mkelongw 'DrawSphereEx 4 slices)))
-                (when slices
-                    (pragma "Color c")
-                    (when (%init-c-color 'DrawSphereEx 5 color "c")
-                        (pragma "DrawSphereEx(center, (float)$1, (int)$2, (int)$3, c)"
-                                ($real->double radius)
-                                ($belong->elong rings)
-                                ($belong->elong slices))
-                        NULL))))))
+        (ensure-flonum 'DrawSphereEx radius 2
+            (ensure-elongs 'DrawSphereEx (rings slices) 3
+                (pragma "Color c")
+                (when (%init-c-color 'DrawSphereEx 5 color "c")
+                    (pragma "DrawSphereEx(center, (float)$1, (int)$2, (int)$3, c)"
+                            ($real->double radius)
+                            ($belong->elong rings)
+                            ($belong->elong slices))
+                    NULL)))))
 
 (defbuiltin (drawspherewires centerPos radius rings slices color)
     (pragma "Vector3 center")
     (when (%init-c-vector3 'DrawSphereWires 1 centerPos "center")
-        (unless (flonum? radius)
-            (set! radius (mkflonumw 'DrawSphereWires 2 radius)))
-        (when radius
-            (unless (elong? rings)
-                (set! rings (mkelongw 'DrawSphereWires 3 rings)))
-            (when rings
-                (unless (elong? slices)
-                    (set! slices (mkelongw 'DrawSphereWires 4 slices)))
-                (when slices
-                    (pragma "Color c")
-                    (when (%init-c-color 'DrawSphereWires 5 color "c")
-                        (pragma "DrawSphereWires(center, (float)$1, (int)$2, (int)$3, c)"
-                                ($real->double radius)
-                                ($belong->elong rings)
-                                ($belong->elong slices))
-                        NULL))))))
+        (ensure-flonum 'DrawSphereWires radius 2
+            (ensure-elongs 'DrawSphereWires (rings slices) 3
+                (pragma "Color c")
+                (when (%init-c-color 'DrawSphereWires 5 color "c")
+                    (pragma "DrawSphereWires(center, (float)$1, (int)$2, (int)$3, c)"
+                            ($real->double radius)
+                            ($belong->elong rings)
+                            ($belong->elong slices))
+                    NULL)))))
 
 (defbuiltin (drawcylinder position radiusTop radiusBottom height slices color)
     (pragma "Vector3 pos")
     (when (%init-c-vector3 'DrawCylinder 1 position "pos")
-        (unless (flonum? radiusTop)
-            (set! radiusTop (mkflonumw 'DrawCylinder 2 radiusTop)))
-        (when radiusTop
-            (unless (flonum? radiusBottom)
-                (set! radiusBottom (mkflonumw 'DrawCylinder 3 radiusBottom)))
-            (when radiusBottom
-                (unless (flonum? height)
-                    (set! height (mkflonumw 'DrawCylinder 4 height)))
-                (when height
-                    (unless (elong? slices)
-                        (set! slices (mkelongw 'DrawCylinder 5 slices)))
-                    (when slices
-                        (pragma "Color c")
-                        (when (%init-c-color 'DrawCylinder 6 color "c")
-                            (pragma "DrawCylinder(pos, (float)$1, (float)$2, (float)$3, (int)$4, c)"
-                                    ($real->double radiusTop)
-                                    ($real->double radiusBottom)
-                                    ($real->double height)
-                                    ($belong->elong slices))
-                            NULL)))))))
+        (ensure-flonums 'DrawCylinder (radiusTop radiusBottom height) 2
+            (ensure-elong 'DrawCylinder slices 5
+                (pragma "Color c")
+                (when (%init-c-color 'DrawCylinder 6 color "c")
+                    (pragma "DrawCylinder(pos, (float)$1, (float)$2, (float)$3, (int)$4, c)"
+                            ($real->double radiusTop)
+                            ($real->double radiusBottom)
+                            ($real->double height)
+                            ($belong->elong slices))
+                    NULL)))))
 
 (defbuiltin (drawcylinderex startPos endPos startRadius endRadius sides color)
     (pragma "Vector3 startPos, endPos")
     (when (and (%init-c-vector3 'DrawCylinderEx 1 startPos "startPos")
                (%init-c-vector3 'DrawCylinderEx 2 endPos "endPos"))
-        (unless (flonum? startRadius)
-            (set! startRadius (mkflonumw 'DrawCylinderEx 3 startRadius)))
-        (when startRadius
-            (unless (flonum? endRadius)
-                (set! endRadius (mkflonumw 'DrawCylinderEx 4 endRadius)))
-            (when endRadius
-                (unless (elong? sides)
-                    (set! sides (mkelongw 'DrawCylinderEx 5 sides)))
-                (when sides
-                    (pragma "Color c")
-                    (when (%init-c-color 'DrawCylinderEx 6 color "c")
-                        (pragma "DrawCylinderEx(startPos, endPos, (float)$1, (float)$2, (int)$3, c)"
-                                ($real->double startRadius)
-                                ($real->double endRadius)
-                                ($belong->elong sides))
-                        NULL))))))
+        (ensure-flonums 'DrawCylinderEx (startRadius endRadius) 3
+            (ensure-elong 'DrawCylinderEx sides 5
+                (pragma "Color c")
+                (when (%init-c-color 'DrawCylinderEx 6 color "c")
+                    (pragma "DrawCylinderEx(startPos, endPos, (float)$1, (float)$2, (int)$3, c)"
+                            ($real->double startRadius)
+                            ($real->double endRadius)
+                            ($belong->elong sides))
+                    NULL)))))
 
 (defbuiltin (drawcylinderwires position radiusTop radiusBottom height slices color)
     (pragma "Vector3 pos")
     (when (%init-c-vector3 'DrawCylinderWires 1 position "pos")
-        (unless (flonum? radiusTop)
-            (set! radiusTop (mkflonumw 'DrawCylinderWires 2 radiusTop)))
-        (when radiusTop
-            (unless (flonum? radiusBottom)
-                (set! radiusBottom (mkflonumw 'DrawCylinderWires 3 radiusBottom)))
-            (when radiusBottom
-                (unless (flonum? height)
-                    (set! height (mkflonumw 'DrawCylinderWires 4 height)))
-                (when height
-                    (unless (elong? slices)
-                        (set! slices (mkelongw 'DrawCylinderWires 5 slices)))
-                    (when slices
-                        (pragma "Color c")
-                        (when (%init-c-color 'DrawCylinderWires 6 color "c")
-                            (pragma "DrawCylinderWires(pos, (float)$1, (float)$2, (float)$3, (int)$4, c)"
-                                    ($real->double radiusTop)
-                                    ($real->double radiusBottom)
-                                    ($real->double height)
-                                    ($belong->elong slices))
-                            NULL)))))))
+        (ensure-flonums 'DrawCylinderWires (radiusTop radiusBottom height) 2
+            (ensure-elong 'DrawCylinderWires slices 5
+                (pragma "Color c")
+                (when (%init-c-color 'DrawCylinderWires 6 color "c")
+                    (pragma "DrawCylinderWires(pos, (float)$1, (float)$2, (float)$3, (int)$4, c)"
+                            ($real->double radiusTop)
+                            ($real->double radiusBottom)
+                            ($real->double height)
+                            ($belong->elong slices))
+                    NULL)))))
 
 (defbuiltin (drawcylinderwiresex startPos endPos startRadius endRadius sides color)
     (pragma "Vector3 startPos, endPos")
     (when (and (%init-c-vector3 'DrawCylinderWiresEx 1 startPos "startPos")
                (%init-c-vector3 'DrawCylinderWiresEx 2 endPos "endPos"))
-        (unless (flonum? startRadius)
-            (set! startRadius (mkflonumw 'DrawCylinderWiresEx 3 startRadius)))
-        (when startRadius
-            (unless (flonum? endRadius)
-                (set! endRadius (mkflonumw 'DrawCylinderWiresEx 4 endRadius)))
-            (when endRadius
-                (unless (elong? sides)
-                    (set! sides (mkelongw 'DrawCylinderWiresEx 5 sides)))
-                (when sides
-                    (pragma "Color c")
-                    (when (%init-c-color 'DrawCylinderWiresEx 6 color "c")
-                        (pragma "DrawCylinderWiresEx(startPos, endPos, (float)$1, (float)$2, (int)$3, c)"
-                                ($real->double startRadius)
-                                ($real->double endRadius)
-                                ($belong->elong sides))
-                        NULL))))))
+        (ensure-flonums 'DrawCylinderWiresEx (startRadius endRadius) 3
+            (ensure-elong 'DrawCylinderWiresEx sides 5
+                (pragma "Color c")
+                (when (%init-c-color 'DrawCylinderWiresEx 6 color "c")
+                    (pragma "DrawCylinderWiresEx(startPos, endPos, (float)$1, (float)$2, (int)$3, c)"
+                            ($real->double startRadius)
+                            ($real->double endRadius)
+                            ($belong->elong sides))
+                    NULL)))))
 
 (defbuiltin (drawcapsule startPos endPos radius slices rings color)
     (pragma "Vector3 startPos, endPos")
     (when (and (%init-c-vector3 'DrawCapsule 1 startPos "startPos")
                (%init-c-vector3 'DrawCapsule 2 endPos "endPos"))
-        (unless (flonum? radius)
-            (set! radius (mkflonumw 'DrawCapsule 3 radius)))
-        (when radius
-            (unless (elong? slices)
-                (set! slices (mkelongw 'DrawCapsule 4 slices)))
-            (when slices
-                (unless (elong? rings)
-                    (set! rings (mkelongw 'DrawCapsule 5 rings)))
-                (when rings
-                    (pragma "Color c")
-                    (when (%init-c-color 'DrawCapsule 6 color "c")
-                        (pragma "DrawCapsule(startPos, endPos, (float)$1, (int)$2, (int)$3, c)"
-                                ($real->double radius)
-                                ($belong->elong slices)
-                                ($belong->elong rings))
-                        NULL))))))
+        (ensure-flonum 'DrawCapsule radius 3
+            (ensure-elongs 'DrawCapsule (slices rings) 4
+                (pragma "Color c")
+                (when (%init-c-color 'DrawCapsule 6 color "c")
+                    (pragma "DrawCapsule(startPos, endPos, (float)$1, (int)$2, (int)$3, c)"
+                            ($real->double radius)
+                            ($belong->elong slices)
+                            ($belong->elong rings))
+                    NULL)))))
 
 (defbuiltin (drawcapsulewires startPos endPos radius slices rings color)
     (pragma "Vector3 startPos, endPos")
     (when (and (%init-c-vector3 'DrawCapsuleWires 1 startPos "startPos")
                (%init-c-vector3 'DrawCapsuleWires 2 endPos "endPos"))
-        (unless (flonum? radius)
-            (set! radius (mkflonumw 'DrawCapsuleWires 3 radius)))
-        (when radius
-            (unless (elong? slices)
-                (set! slices (mkelongw 'DrawCapsuleWires 4 slices)))
-            (when slices
-                (unless (elong? rings)
-                    (set! rings (mkelongw 'DrawCapsuleWires 5 rings)))
-                (when rings
-                    (pragma "Color c")
-                    (when (%init-c-color 'DrawCapsuleWires 6 color "c")
-                        (pragma "DrawCapsuleWires(startPos, endPos, (float)$1, (int)$2, (int)$3, c)"
-                                ($real->double radius)
-                                ($belong->elong slices)
-                                ($belong->elong rings))
-                        NULL))))))
+        (ensure-flonum 'DrawCapsuleWires radius 3
+            (ensure-elongs 'DrawCapsuleWires (slices rings) 4
+                (pragma "Color c")
+                (when (%init-c-color 'DrawCapsuleWires 6 color "c")
+                    (pragma "DrawCapsuleWires(startPos, endPos, (float)$1, (int)$2, (int)$3, c)"
+                            ($real->double radius)
+                            ($belong->elong slices)
+                            ($belong->elong rings))
+                    NULL)))))
 
 (defbuiltin (drawplane centerPos size color)
     (pragma "Vector3 center;
@@ -3476,12 +2813,8 @@
         NULL))
 
 (defbuiltin (drawgrid slices spacing)
-    (unless (elong? slices)
-        (set! slices (mkelongw 'DrawGrid 1 slices)))
-    (when slices
-        (unless (flonum? spacing)
-            (set! spacing (mkflonumw 'DrawGrid 2 spacing)))
-        (when spacing
+    (ensure-elong 'DrawGrid slices 1
+        (ensure-flonum 'DrawGrid spacing 2
             (pragma "DrawGrid((int)$1, (float)$2)"
                     ($belong->elong slices)
                     ($real->double spacing))
