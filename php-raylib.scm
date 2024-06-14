@@ -6,7 +6,8 @@
         (include "bpc.h"))
     (import
         php-raymath
-        php-rlgl)
+        php-rlgl
+        php-raudio)
     (export
         (init-php-raylib-lib)
         ; constants
