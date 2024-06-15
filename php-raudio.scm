@@ -35,6 +35,23 @@
         (wavecopy wave)
         (wavecrop wave initSample finalSample)
         (waveformat wave sampleRate sampleSize channels)
+        ; Music management functions
+        (loadmusicstream fileName)
+        (loadmusicstreamfrommemory fileType data)
+        (ismusicready music)
+        (unloadmusicstream music)
+        (playmusicstream music)
+        (ismusicstreamplaying music)
+        (updatemusicstream music)
+        (stopmusicstream music)
+        (pausemusicstream music)
+        (resumemusicstream music)
+        (seekmusicstream music position)
+        (setmusicvolume music volume)
+        (setmusicpitch music pitch)
+        (setmusicpan music pan)
+        (getmusictimelength music)
+        (getmusictimeplayed music)
         ))
 
 ; Audio device management functions
@@ -253,3 +270,89 @@
             (pragma "music = (Music *)$1" ($obj->void* (%Music-intern music)))
             ,@code
             )))
+
+(defbuiltin (loadmusicstream fileName)
+    (ensure-path 'LoadMusicStream fileName 1
+        (pragma "Music *music = (Music *)GC_MALLOC_ATOMIC(sizeof(Music))")
+        (pragma "*music = LoadMusicStream($1)" ($bstring->string fileName))
+        (make-resource %Music (pragma::void* "music"))))
+
+(defbuiltin (loadmusicstreamfrommemory fileType data)
+    (ensure-strs 'LoadMusicStreamFromMemory (fileType data) 1
+        (pragma "Music *music = (Music *)GC_MALLOC_ATOMIC(sizeof(Music))")
+        (pragma "*music = LoadMusicStreamFromMemory($1, BSTRING_TO_STRING($2), STRING_LENGTH($2))"
+                ($bstring->string fileType)
+                data)
+        (make-resource %Music (pragma::void* "music"))))
+
+(defbuiltin (ismusicready music)
+    (%ensure-music 'IsMusicReady
+        (pragma::bool "IsMusicReady(*music)")))
+
+(defbuiltin (unloadmusicstream music)
+    (%ensure-music 'UnloadMusicStream
+        (pragma "UnloadMusicStream(*music)")
+        (%Music-intern-set! music #f)
+        (%Music-description-set! music #f)
+        NULL))
+
+(defbuiltin (playmusicstream music)
+    (%ensure-music 'PlayMusicStream
+        (pragma "PlayMusicStream(*music)")
+        NULL))
+
+(defbuiltin (ismusicstreamplaying music)
+    (%ensure-music 'IsMusicStreamPlaying
+        (pragma::bool "IsMusicStreamPlaying(*music)")))
+
+(defbuiltin (updatemusicstream music)
+    (%ensure-music 'UpdateMusicStream
+        (pragma "UpdateMusicStream(*music)")
+        NULL))
+
+(defbuiltin (stopmusicstream music)
+    (%ensure-music 'StopMusicStream
+        (pragma "StopMusicStream(*music)")
+        NULL))
+
+(defbuiltin (pausemusicstream music)
+    (%ensure-music 'PauseMusicStream
+        (pragma "PauseMusicStream(*music)")
+        NULL))
+
+(defbuiltin (resumemusicstream music)
+    (%ensure-music 'ResumeMusicStream
+        (pragma "ResumeMusicStream(*music)")
+        NULL))
+
+(defbuiltin (seekmusicstream music position)
+    (%ensure-music 'SeekMusicStream
+        (ensure-flonum 'SeekMusicStream position 2
+            (pragma "SeekMusicStream(*music, (float)$1)" ($real->double position))
+            NULL)))
+
+(defbuiltin (setmusicvolume music volume)
+    (%ensure-music 'SetMusicVolume
+        (ensure-flonum 'SetMusicVolume volume 2
+            (pragma "SetMusicVolume(*music, (float)$1)" ($real->double volume))
+            NULL)))
+
+(defbuiltin (setmusicpitch music pitch)
+    (%ensure-music 'SetMusicPitch
+        (ensure-flonum 'SetMusicPitch pitch 2
+            (pragma "SetMusicPitch(*music, (float)$1)" ($real->double pitch))
+            NULL)))
+
+(defbuiltin (setmusicpan music pan)
+    (%ensure-music 'SetMusicPan
+        (ensure-flonum 'SetMusicPan pan 2
+            (pragma "SetMusicPan(*music, (float)$1)" ($real->double pan))
+            NULL)))
+
+(defbuiltin (getmusictimelength music)
+    (%ensure-music 'GetMusicTimeLength
+        (pragma::double "GetMusicTimeLength(*music)")))
+
+(defbuiltin (getmusictimeplayed music)
+    (%ensure-music 'GetMusicTimePlayed
+        (pragma::double "GetMusicTimePlayed(*music)")))
