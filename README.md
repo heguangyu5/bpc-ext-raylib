@@ -1,7 +1,26 @@
 # 1. How to make
 
 ```shell
+# install raylib v5.0 first
+wget https://github.com/raysan5/raylib/archive/refs/tags/5.0.tar.gz
+tar zxf 5.0.tar.gz
+cd raylib-5.0/src
+# @see https://github.com/raysan5/raylib/wiki/Working-on-GNU-Linux
+sudo apt install libasound2-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev
+make PLATFORM=PLATFORM_DESKTOP
+sudo make install
+
+# edit /usr/local/include/raylib.h 
+typedef enum {
+    LOG_XXX => RAYLIB_LOG_XXX
+} TraceLogLevel;
+
+# install xxx-dev packages
+# @see https://github.com/bob-php-compiler/bpc-release/wiki/05_Advanced_usage
+sudo apt install libglib2.0-dev libunistring-dev libargon2-0-dev
+
 make && sudo make install
+sudo ldconfig
 bpc -v -c bpc-raylib.conf --static -d display_errors=on -d max_execution_time=-1 test.php
 ./test
 ```
